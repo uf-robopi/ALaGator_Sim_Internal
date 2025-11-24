@@ -1,0 +1,36 @@
+# Catkin/ROS build outputs
+build/
+devel/
+install/
+logs/
+.catkin_tools/
+
+# Python cruft
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+
+# Editors/OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Mesh models
+meshes/
+models/
+
+# Big/temporary data
+*.bag
+*.mcap
+*.log
+*.csv
+
+# Large asset folders
+nemesys_surveillance/meshes/**
+nemesys_surveillance/models/**
+nemesys_surveillance/worlds/**
+uw_acoustics/models/**
