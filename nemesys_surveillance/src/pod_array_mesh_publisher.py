@@ -38,7 +38,7 @@ def main():
     rospy.init_node("pod_array_mesh_publisher")
 
     # Params (edit path or set via rosparam)
-    mesh_path = rospy.get_param("~mesh_path", "/home/adnana/catkin_ws/src/nemesys_surveillance_pkgs/nemesys_description/meshes/pod_pipeline_merged.stl")
+    mesh_path = rospy.get_param("~mesh_path", "package://nemesys_surveillance/meshes/pod_pipeline_merged.stl")
     frame_id  = rospy.get_param("~frame_id", "world")
     topic     = rospy.get_param("~topic", "/pod_mesh")
 

@@ -17,7 +17,7 @@ def _dist(a, b):
 
 class AcousticSourceMarkers:
     def __init__(self):
-        rospy.init_node("acoustic_source_markers")
+        rospy.init_node("acoustic_markers")
 
         # ---- Params ----------------------------------------------------------
         self.frame_id       = rospy.get_param("~frame_id", "world")

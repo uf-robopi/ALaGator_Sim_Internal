@@ -22,6 +22,7 @@ __pycache__/
 # Mesh models
 meshes/
 models/
+Media/
 
 # Big/temporary data
 *.bag
@@ -33,4 +34,5 @@ models/
 nemesys_surveillance/meshes/**
 nemesys_surveillance/models/**
 nemesys_surveillance/worlds/**
+nemesys_surveillance/Media/**
 uw_acoustics/models/**
