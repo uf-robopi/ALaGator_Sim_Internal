@@ -37,9 +37,8 @@ def publish_mesh():
     marker.color.b = 0.8
     marker.color.a = 1.0
 
-    # Provide full file path
-    # mesh_path = "package://nemesys_surveillance/meshes/pod_pipeline_merged.stl" #os.path.abspath("pod_pipeline_merged.stl")
-    marker.mesh_resource = marker.mesh_resource = "package://nemesys_surveillance/meshes/pod_pipeline_merged.stl" #"file://" + mesh_path
+    # Provide mesh path to render in RViz
+    marker.mesh_resource = marker.mesh_resource = "package://nemesys_surveillance/meshes/pod_pipeline_merged.stl"
 
     rate = rospy.Rate(1)
     while not rospy.is_shutdown():

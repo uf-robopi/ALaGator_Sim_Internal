@@ -44,7 +44,7 @@ Email: adnanabdullah@ufl.edu
 
     <!-- Launching the 'gzclient' and 'gzserver' Nodes from the 'gazebo_ros' Package -->
     <node name="gazebo" pkg="gazebo_ros" type="gzserver" respawn="false" output="screen"
-        args="-u -e ode $(find nemesys_surveillance)/worlds/$(arg world_name)" />
+        args="-e ode $(find nemesys_surveillance)/worlds/$(arg world_name)" />
 
     <node name="gazebo_gui" pkg="gazebo_ros" type="gzclient" respawn="false" output="screen" args="--verbose"/>
 
@@ -58,7 +58,7 @@ Email: adnanabdullah@ufl.edu
 
     <!-- Spawning the robot in Gazebo -->
     <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" output="screen"
-            args="-x 2.0 -y 0.2 -z -59.1 -urdf -model nemesys -param robot_description -R 3.1416 -P 0.0 -Y 3." />
+            args="-x 0.5 -y 0.0 -z -58.3 -urdf -model nemesys -param robot_description -R 3.1416 -P 0.0 -Y 3." />
     
     <!-- Static tf from world to odom/map frame -->
     <node pkg="tf" type="static_transform_publisher" name="world_to_map"
