@@ -10,17 +10,18 @@ Email: adnanabdullah@ufl.edu
 
     <!-- Launch file arguments. -->
     <arg name="use_sim_time" default="true"/>
-    <arg name="world_name" default="cylinder_pod.world"/>
+    <arg name="world_name" default="cylinder_pod_array.world"/>
     <arg name="enable_ros_network" default="true" />
 
     <!--Creating an argument for the surveillance AUV URDF Model -->
-    <arg name="model" default="$(find nemesys_surveillance)/urdf/nemesys.urdf.xacro"/>
+    <arg name="surv_agent_model" default="$(find nemesys_surveillance)/urdf/nemesys.urdf.xacro"/>
 
+    <!-- Make Gazebo see models... -->
     <env name="GAZEBO_MODEL_PATH"
         value="$(find nemesys_surveillance)/models:$(find uw_acoustics)/models:$(optenv GAZEBO_MODEL_PATH)"/>
 
 
-        <!-- Make Gazebo see Media/materials/... -->
+    <!-- Make Gazebo see Media/materials/... -->
     <env name="GAZEBO_RESOURCE_PATH"
          value="$(find nemesys_surveillance):$(optenv GAZEBO_RESOURCE_PATH)"/>
 
@@ -48,7 +49,7 @@ Email: adnanabdullah@ufl.edu
     <node name="gazebo_gui" pkg="gazebo_ros" type="gzclient" respawn="false" output="screen" args="--verbose"/>
 
     <!--Launching the nemesys URDF model into Gazebo using the 'robot_state_publisher' Node -->
-    <param name="robot_description" command="$(find xacro)/xacro $(arg model)" />
+    <param name="robot_description" command="$(find xacro)/xacro $(arg surv_agent_model)" />
 
     <node pkg="robot_state_publisher" type="robot_state_publisher"  name="robot_state_publisher">
         <param name="publish_frequency" type="double" value="100.0" />
