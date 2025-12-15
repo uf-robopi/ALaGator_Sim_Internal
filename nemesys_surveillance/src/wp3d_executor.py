@@ -110,14 +110,20 @@ class Waypoint3DExecutor:
             rospy.loginfo_throttle(2.0, "Waiting for pose/yaw...")
             return
 
+        # if self.idx >= len(self.waypoints):
+        #     # Stop
+        #     self.cmd.surge = 0.0
+        #     self.cmd.yaw = 0.0
+        #     self.cmd.heave = 0.0
+        #     self.cmd_pub.publish(self.cmd)
+        #     rospy.loginfo_throttle(2.0, "All waypoints completed.")
+        #     return
+
+        # If we've gone past the last waypoint, wrap around and start again
         if self.idx >= len(self.waypoints):
-            # Stop
-            self.cmd.surge = 0.0
-            self.cmd.yaw = 0.0
-            self.cmd.heave = 0.0
-            self.cmd_pub.publish(self.cmd)
-            rospy.loginfo_throttle(2.0, "All waypoints completed.")
-            return
+            rospy.loginfo("Completed all waypoints, restarting from the first one.")
+            self.idx = 0
+            self.sent_depth_for_idx = None  # force publishing depth for new WP
 
         # Current target
         tx, ty, tz = self.waypoints[self.idx]

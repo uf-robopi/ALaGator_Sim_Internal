@@ -44,7 +44,7 @@ Email: adnanabdullah@ufl.edu
 
     <!-- Launching the 'gzclient' and 'gzserver' Nodes from the 'gazebo_ros' Package -->
     <node name="gazebo" pkg="gazebo_ros" type="gzserver" respawn="false" output="screen"
-        args="-e ode $(find nemesys_surveillance)/worlds/$(arg world_name)" />
+        args="-u -e ode $(find nemesys_surveillance)/worlds/$(arg world_name)" />
 
     <node name="gazebo_gui" pkg="gazebo_ros" type="gzclient" respawn="false" output="screen" args="--verbose"/>
 
