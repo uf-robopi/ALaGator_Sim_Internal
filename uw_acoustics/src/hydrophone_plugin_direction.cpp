@@ -42,7 +42,7 @@ public:
     world_ = model_->GetWorld();
 
     // --- Parameters ---
-    source_model_name_ = sdf->Get<std::string>("source_model", "acoustic_source").first;
+    source_model_name_ = sdf->Get<std::string>("source_model", "mobile_acoustic_source").first;
     out_topic_         = sdf->Get<std::string>("out_topic", "/hydrophones/left").first;
 
     // Names of links (optional; we fall back to model pose/vel if missing)
@@ -169,9 +169,11 @@ private:
       ux = dx / r; uy = dy / r; uz = dz / r;
     }
 
+    ignition::math::Vector3d los(ux, uy, uz);  // direction from source to hydrophone
+
     // Spherical gradient scaler
     double rate = 1;                        // Arbitrary (1 is sphere)
-    double alpha = acos(Xsrc.Dot(Xhyd));
+    double alpha = acos(Xsrc.Dot(los));  // Angle between source heading and LOS
     double gradient_scaler = (cos(rate*alpha)+1)/2;
 
     // Radial relative velocity (positive if separating)

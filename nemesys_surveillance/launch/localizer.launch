@@ -13,6 +13,10 @@ Email: adnanabdullah@ufl.edu
     <arg name="world_name" default="cylinder_pod_array.world"/>
     <arg name="enable_ros_network" default="true" />
 
+    <env name="GAZEBO_PLUGIN_PATH"
+     value="$(optenv CATKIN_DEVEL_PREFIX)/lib:$(optenv GAZEBO_PLUGIN_PATH)"/>
+
+
     <!--Creating an argument for the surveillance AUV URDF Model -->
     <arg name="surv_agent_model" default="$(find nemesys_surveillance)/urdf/nemesys.urdf.xacro"/>
 
@@ -139,14 +143,14 @@ Email: adnanabdullah@ufl.edu
 
 
     <!-- Run RViz with pre-saved config -->
-    <node pkg="rviz" type="rviz" name="rviz"
-        args="-d $(find nemesys_surveillance)/rviz/rviz_config2.rviz" output="screen" />
+    <!-- <node pkg="rviz" type="rviz" name="rviz"
+        args="-d $(find nemesys_surveillance)/rviz/rviz_config2.rviz" output="screen" /> -->
 
     <!-- Launch the trajectory visualizer in RViz -->
-    <node pkg="nemesys_surveillance" type="trajectory_visualizer.py" name="trajectory_visualizer" />
+    <!-- <node pkg="nemesys_surveillance" type="trajectory_visualizer.py" name="trajectory_visualizer" /> -->
 
     <!-- Launch the pod mesh in Rviz -->
-    <node pkg="nemesys_surveillance" type="pod_mesh_publisher.py" name="pod_mesh_publisher" />
+    <!-- <node pkg="nemesys_surveillance" type="pod_mesh_publisher.py" name="pod_mesh_publisher" /> -->
 
     
 </launch>

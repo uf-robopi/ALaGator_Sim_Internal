@@ -14,7 +14,7 @@ class Dumper:
         self.topic_R = rospy.get_param("~topic_right", "/hydrophones/rov")
         self.Nblocks = int(rospy.get_param("~n_blocks", 32))
         self.outpath = rospy.get_param("~out", "hydro_dump_n_0_05_inverse.npz")
-        self.fs      = float(rospy.get_param("~fs", 100000.0))
+        self.fs      = float(rospy.get_param("~fs", 48000.0))
         self.baseline= float(rospy.get_param("~baseline_m", 2.0))
         self.csound  = float(rospy.get_param("~speed_of_sound", 1482.0))
 

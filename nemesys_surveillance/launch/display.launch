@@ -5,17 +5,113 @@ Email: adnanabdullah@ufl.edu
 ===================================== -->
 
 <launch>
-<!-- This launch file renders the nemesys robot model within RViz. -->
+    <!-- This launch file renders the underwater world with data center, surveillance AUV, and adversarial agent. -->
 
-  <arg name="model" default="$(find nemesys_surveillance)/urdf/nemesys.urdf.xacro"/>
-  <arg name="gui" default="true" />
-  <arg name="rvizconfig" default="$(find nemesys_surveillance)/rviz/rviz_config.rviz" />
+    <!-- Launch file arguments. -->
+    <arg name="use_sim_time" default="true"/>
+    <arg name="world_name" default="cylinder_pod_array.world"/>
+    <arg name="enable_ros_network" default="true" />
 
-  <param name="robot_description" command="$(find xacro)/xacro $(arg model)" />
-  <!--<param name="use_gui" value="$(arg gui)"/>-->
+    <env name="GAZEBO_PLUGIN_PATH"
+     value="$(optenv CATKIN_DEVEL_PREFIX)/lib:$(optenv GAZEBO_PLUGIN_PATH)"/>
 
-  <node name="joint_state_publisher_gui" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" />
-  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="true" />
 
+    <!--Creating an argument for the surveillance AUV URDF Model -->
+    <arg name="surv_agent_model" default="$(find nemesys_surveillance)/urdf/nemesys.urdf.xacro"/>
+
+    <!-- Make Gazebo see models... -->
+    <env name="GAZEBO_MODEL_PATH"
+        value="$(find nemesys_surveillance)/models:$(find uw_acoustics)/models:$(optenv GAZEBO_MODEL_PATH)"/>
+
+
+    <!-- Make Gazebo see Media/materials/... -->
+    <env name="GAZEBO_RESOURCE_PATH"
+         value="$(find nemesys_surveillance):$(optenv GAZEBO_RESOURCE_PATH)"/>
+
+    <!-- Args for source location -->
+    <arg name="source_x" default="0.6"/>
+    <arg name="source_y" default="-2.8"/>
+    <arg name="source_z" default="-59.1"/>
+
+    <!-- Args for static hydrophone -->
+    <arg name="static_x" default="0.0"/>
+    <arg name="static_y" default="0.0"/>
+    <arg name="static_z" default="-59.06"/>
+
+    <!-- Setting use_sim_time flag -->
+    <param name="/use_sim_time" value="$(arg use_sim_time)"/>
+
+    <group>
+        <param name="gazebo/enable_ros_network" value="$(arg enable_ros_network)" />
+    </group>
+
+    <!-- Launching the 'gzclient' and 'gzserver' Nodes from the 'gazebo_ros' Package -->
+    <node name="gazebo" pkg="gazebo_ros" type="gzserver" respawn="false" output="screen"
+        args="-u -e ode $(find nemesys_surveillance)/worlds/$(arg world_name)" />
+
+    <node name="gazebo_gui" pkg="gazebo_ros" type="gzclient" respawn="false" output="screen" args="--verbose"/>
+
+    <!--Launching the nemesys URDF model into Gazebo using the 'robot_state_publisher' Node -->
+    <param name="robot_description" command="$(find xacro)/xacro $(arg surv_agent_model)" />
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher"  name="robot_state_publisher">
+        <param name="publish_frequency" type="double" value="100.0" />
+    </node>
+
+
+    <!-- Spawning the robot in Gazebo -->
+    <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" output="screen"
+            args="-x 0.5 -y 0.0 -z -58.3 -urdf -model nemesys -param robot_description -R 3.1416 -P 0.0 -Y 3." />
+    
+    <!-- Static tf from world to odom/map frame -->
+    <node pkg="tf" type="static_transform_publisher" name="world_to_map"
+      args="0 0 60 0 0 0 world map 100" />
+
+    <node pkg="tf" type="static_transform_publisher" name="world_to_odom" 
+      args="0 0 0 0 0 0 map odom 100" />
+
+    <!-- Controller node for the movement of the robot in Gazebo -->
+    <node pkg="nemesys_surveillance" type="nemesys_control_node.py" name="nemesys_control_node" />
+
+    <!-- Launching the depth controller node of the robot in Gazebo -->
+    <node pkg="nemesys_surveillance" type="depth_control_node.py" name="depth_control_node" />
+
+    <!-- Launching the imu processor node of the robot in Gazebo -->
+    <node pkg="nemesys_surveillance" type="imu_data_processor.py" name="imu_data_processor" />
+
+    <node pkg="nemesys_surveillance" type="nemesys_status_publisher.py" name="nemesys_status_publisher">
+        <param name="use_sim_time" value="true"/>
+        <rosparam>
+            /wait_for_clock: true
+        </rosparam>
+    </node>
+
+
+    <!-- Launching the acoustic source model in Gazebo --> 
+    <!-- changed name from mobile_acosutic_source to acoustic_source  -->
+    <node pkg="gazebo_ros" type="spawn_model" name="mobile_acoustic_source" output="screen"
+      args="-file $(find uw_acoustics)/models/mobile_acoustic_source/model.sdf
+            -sdf -model mobile_acoustic_source -x $(arg source_x) -y $(arg source_y) -z $(arg source_z)" />
+
+<!-- To make the source mobile, run one of the following comamnds in a separate terminal -->
+
+<!-- rostopic pub /mobile_acoustic_source/cmd_vel geometry_msgs/Twist \
+'{linear: {x: 0.3, y: 0.0, z: 0.0}, angular: {z: 0.1}}' -->
+
+<!-- rostopic pub /mobile_acoustic_source/cmd_vel geometry_msgs/Twist \
+'{linear: {x: -0.05, y: 0.1, z: 0.0}, angular: {z: 0.0}}' -->
+
+
+    <!-- Launching the static hydrophone model in Gazebo -->
+    <node pkg="gazebo_ros" type="spawn_model" name="spawn_hydrophone_1" output="screen"
+      args="-file $(find uw_acoustics)/models/hydro_left/model.sdf
+            -sdf -model hydrophone_static -x $(arg static_x) -y $(arg static_y) -z $(arg static_z)" />
+
+
+
+    <!-- Run RViz with pre-saved config -->
+    <!-- <node pkg="rviz" type="rviz" name="rviz"
+        args="-d $(find nemesys_surveillance)/rviz/rviz_config2.rviz" output="screen" /> -->
+
+   
 </launch>
