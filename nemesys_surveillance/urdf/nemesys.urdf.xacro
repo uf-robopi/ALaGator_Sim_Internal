@@ -420,6 +420,8 @@ Email: adnanabdullah@ufl.edu
         <block_size>256</block_size>
         <loss_model>none</loss_model>         <!-- none | inverse | inverse_square -->
         <noise_std>0.0</noise_std>
+        <buffer_seconds>5.0</buffer_seconds>
+        <output_latency_blocks>1</output_latency_blocks>
     </plugin>
     </gazebo>
 

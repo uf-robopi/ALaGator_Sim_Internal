@@ -12,13 +12,13 @@
 #include <memory>
 #include <cmath>
 #include <algorithm>
+#include <cstring>
 
 namespace gazebo {
 
 class AcousticSourcePlugin : public ModelPlugin {
 public:
   void Load(physics::ModelPtr model, sdf::ElementPtr sdf) override {
-
     model_ = model;
     world_ = model_->GetWorld();
 
@@ -34,13 +34,12 @@ public:
       return;
     }
 
-    // ROS init
     if (!ros::isInitialized()) {
       int argc = 0; char** argv = nullptr;
       ros::init(argc, argv, "gazebo_acoustic_source", ros::init_options::NoSigintHandler);
     }
     nh_.reset(new ros::NodeHandle(""));
-    pub_ = nh_->advertise<std_msgs::Float32MultiArray>(out_topic_, 50);
+    pub_ = nh_->advertise<std_msgs::Float32MultiArray>(out_topic_, 200);
 
     if (!loadAudio(audio_path_)) {
       gzerr << "[AcousticSource] Failed to load: " << audio_path_ << "\n";
@@ -48,12 +47,12 @@ public:
     }
 
     last_block_pub_ = -1;
+
     update_conn_ = event::Events::ConnectWorldUpdateBegin(
       std::bind(&AcousticSourcePlugin::OnUpdate, this));
 
     ROS_INFO("[AcousticSource] topic=%s file=%s file_fs=%d file_ch=%d target_fs=%.1f N=%d loop=%d",
-             out_topic_.c_str(), audio_path_.c_str(), file_fs_, file_ch_,
-             fs_, block_size_, (int)loop_);
+             out_topic_.c_str(), audio_path_.c_str(), file_fs_, file_ch_, fs_, block_size_, (int)loop_);
   }
 
 private:
@@ -76,11 +75,15 @@ private:
     std::vector<float> interleaved((size_t)info.frames * (size_t)info.channels);
     sf_count_t nread = sf_readf_float(sf, interleaved.data(), info.frames);
     sf_close(sf);
+
+    if (nread <= 0) {
+      ROS_ERROR("[AcousticSource] failed to read frames.");
+      return false;
+    }
     if (nread != info.frames) {
       ROS_WARN("[AcousticSource] read %lld/%lld frames", (long long)nread, (long long)info.frames);
     }
 
-    // Convert to mono float buffer
     wav_.resize((size_t)nread);
     if (file_ch_ == 1) {
       for (sf_count_t i = 0; i < nread; ++i) wav_[(size_t)i] = interleaved[(size_t)i];
@@ -94,14 +97,12 @@ private:
       }
     }
 
-    // Hard policy: require file samplerate == fs_ (keeps this simple and correct)
     if ((int)std::llround(fs_) != file_fs_) {
       ROS_ERROR("[AcousticSource] File fs=%d but plugin fs=%.1f. Please resample file to match.",
                 file_fs_, fs_);
       return false;
     }
 
-    // Normalize lightly if needed (optional)
     float mx = 0.0f;
     for (float v : wav_) mx = std::max(mx, std::abs(v));
     if (mx > 1.5f) {
@@ -125,6 +126,23 @@ private:
     }
   }
 
+  void publishBlock(long long b_pub) {
+    const long long k_start = b_pub * (long long)block_size_;
+
+    std_msgs::Float32MultiArray msg;
+    msg.layout.dim.resize(1);
+    msg.layout.dim[0].label  = "samples";
+    msg.layout.dim[0].size   = (uint32_t)block_size_;
+    msg.layout.dim[0].stride = (uint32_t)block_size_;
+    msg.layout.data_offset   = (uint32_t)k_start;
+    msg.data.resize((size_t)block_size_);
+
+    for (int n = 0; n < block_size_; ++n) {
+      msg.data[(size_t)n] = sampleAt(k_start + n);
+    }
+    pub_.publish(msg);
+  }
+
   void OnUpdate() {
     if (!pub_) return;
 
@@ -133,30 +151,19 @@ private:
 
     const long long k_now = (long long)std::floor(t * fs_);
     const long long b_now = k_now / block_size_;
+
+    // Initialize so first publish starts at block 0 (or close)
     if (last_block_pub_ < 0) last_block_pub_ = b_now - 1;
 
-    if (b_now <= last_block_pub_) return;
-
-    const long long b_pub   = b_now - 1;
-    const long long k_start = b_pub * (long long)block_size_;
-    last_block_pub_ = b_now;
-
-    std_msgs::Float32MultiArray msg;
-    msg.layout.dim.resize(1);
-    msg.layout.dim[0].label  = "samples";
-    msg.layout.dim[0].size   = (uint32_t)block_size_;
-    msg.layout.dim[0].stride = (uint32_t)block_size_;
-    msg.layout.data_offset   = (uint32_t)k_start;  // absolute sample index
-    msg.data.resize((size_t)block_size_);
-
-    for (int n = 0; n < block_size_; ++n) {
-      msg.data[(size_t)n] = sampleAt(k_start + n);
+    // Publish ALL blocks that became due since last update
+    // We publish up to (b_now - 1) to ensure "past" samples are available.
+    const long long b_target = b_now - 1;
+    for (long long b = last_block_pub_ + 1; b <= b_target; ++b) {
+      publishBlock(b);
     }
-
-    pub_.publish(msg);
+    last_block_pub_ = b_target;
   }
 
-  // Members
   physics::ModelPtr model_;
   physics::WorldPtr world_;
   event::ConnectionPtr update_conn_;
@@ -176,9 +183,9 @@ private:
 
   std::vector<float> wav_;
   long long wav_len_{0};
+
   long long last_block_pub_{-1};
 };
 
 GZ_REGISTER_MODEL_PLUGIN(AcousticSourcePlugin)
-
 } // namespace gazebo

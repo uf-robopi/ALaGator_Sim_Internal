@@ -4,7 +4,7 @@ import numpy as np
 from std_msgs.msg import Float32MultiArray
 from datetime import datetime
 
-MAX_BLOCKS = 1000   # just a few blocks for debugging
+MAX_BLOCKS = 10   # just a few blocks for debugging
 
 left_blocks = []
 rov_blocks  = []
