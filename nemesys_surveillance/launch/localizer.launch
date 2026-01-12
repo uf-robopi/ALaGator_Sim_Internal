@@ -109,14 +109,14 @@ Email: adnanabdullah@ufl.edu
             -sdf -model hydrophone_static -x $(arg static_x) -y $(arg static_y) -z $(arg static_z)" />
 
     <!-- Launch the TDOA estimator node -->
-    <node pkg="uw_acoustics" type="tdoa_estimator.py" name="tdoa_estimator">
+    <!-- <node pkg="uw_acoustics" type="tdoa_estimator.py" name="tdoa_estimator">
         <param name="source_x" value="$(arg source_x)" type="double"/>
         <param name="source_y" value="$(arg source_y)" type="double"/>
         <param name="source_z" value="$(arg source_z)" type="double"/>
         <param name="static_x" value="$(arg static_x)" type="double"/>
         <param name="static_y" value="$(arg static_y)" type="double"/>
         <param name="static_z" value="$(arg static_z)" type="double"/>
-    </node>
+    </node> -->
 
     <!-- Launch the FDOA estimator node -->
     <node pkg="uw_acoustics" type="fdoa_rrd_estimator.py" name="fdoa_estimator">

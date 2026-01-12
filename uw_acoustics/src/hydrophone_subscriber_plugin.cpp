@@ -32,7 +32,7 @@ public:
     hydro_link_name_    = sdf->Get<std::string>("hydro_link", "link").first;
 
     fs_                 = sdf->Get<double>("fs", 48000.0).first;
-    block_size_         = sdf->Get<int>("block_size", 256).first;
+    block_size_         = sdf->Get<int>("block_size", 1024).first;
     speed_of_sound_     = sdf->Get<double>("speed_of_sound", 1500.0).first;
     loss_model_         = sdf->Get<std::string>("loss_model", "none").first;
     amplitude_          = sdf->Get<double>("amplitude", 1.0).first;
@@ -329,7 +329,7 @@ private:
   physics::LinkPtr source_link_;
 
   double fs_{48000.0};
-  int block_size_{256};
+  int block_size_{1024};
   double speed_of_sound_{1500.0};
   std::string loss_model_{"none"};
   double amplitude_{1.0};

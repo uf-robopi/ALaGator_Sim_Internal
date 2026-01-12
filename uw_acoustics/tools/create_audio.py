@@ -74,16 +74,16 @@ def generate_triangle_wave(
 
 
 if __name__ == "__main__":
-    # generate_tone(
-    #     filename="tone_1kHz.wav",
+    generate_tone(
+        filename="assets/tone_150Hz.wav",
+        frequency=150.0,
+        amplitude=0.8,
+        duration=3.0
+    )
+
+    # generate_triangle_wave(
+    #     filename="assets/triangle_1kHz.wav",
     #     frequency=1000.0,
     #     amplitude=0.8,
     #     duration=3.0
     # )
-
-    generate_triangle_wave(
-        filename="assets/triangle_1kHz.wav",
-        frequency=1000.0,
-        amplitude=0.8,
-        duration=3.0
-    )

@@ -417,11 +417,18 @@ Email: adnanabdullah@ufl.edu
         <amplitude>1.0</amplitude>
         <start_time>0.0</start_time>
         <speed_of_sound>1482.0</speed_of_sound>
-        <block_size>256</block_size>
+        <block_size>1024</block_size>
         <loss_model>none</loss_model>         <!-- none | inverse | inverse_square -->
         <noise_std>0.0</noise_std>
         <buffer_seconds>5.0</buffer_seconds>
-        <output_latency_blocks>1</output_latency_blocks>
+        <output_latency_blocks>0</output_latency_blocks>
+        
+        <directionality>cosine</directionality>          <!-- none|cosine|cosine_power -->
+        <dir_axis>1 0 0</dir_axis>                       <!-- source-local axis (default +X) -->
+        <dir_rate>1.0</dir_rate>                         <!-- multiplier inside cos(rate*alpha) -->
+        <dir_power>1.0</dir_power>                       <!-- for cosine_power -->
+        <dir_min>0.0</dir_min>                           <!-- clamp -->
+        <dir_max>1.0</dir_max>
     </plugin>
     </gazebo>
 

@@ -79,7 +79,7 @@ class TDOAEstimatorNode:
         # Parameters
         self.topic_static = rospy.get_param('~static_topic', '/hydrophones/static')
         self.topic_rov    = rospy.get_param('~rov_topic',     '/hydrophones/rov')
-        self.fs           = float(rospy.get_param('~fs', 100000.0))  # Hz
+        self.fs           = float(rospy.get_param('~fs', 48000.0))  # Hz
         self.f_sig        = float(rospy.get_param('~f', 150.0))      # Hz
         self.c_sound      = float(rospy.get_param('~sound_speed', 1482.0))
 
@@ -110,7 +110,7 @@ class TDOAEstimatorNode:
         self.full_base_link     = f"{self.robot_model_prefix}::{self.base_link_name}"
 
         # Required min samples to run correlation
-        self.block_len = int(rospy.get_param('~block_len', 2048))
+        self.block_len = int(rospy.get_param('~block_len', 1024))
 
         # Publishers
         self.pub_tdoa_us   = rospy.Publisher('/hydrophones/tdoa_us',   Float32, queue_size=10)

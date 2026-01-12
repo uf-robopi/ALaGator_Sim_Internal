@@ -26,7 +26,7 @@ public:
     audio_path_  = sdf->Get<std::string>("audio_path", "").first;
     loop_        = sdf->Get<bool>("loop", true).first;
     fs_          = sdf->Get<double>("fs", 48000.0).first;
-    block_size_  = sdf->Get<int>("block_size", 256).first;
+    block_size_  = sdf->Get<int>("block_size", 1024).first;
     start_time_  = sdf->Get<double>("start_time", 0.0).first;
 
     if (audio_path_.empty()) {
@@ -175,7 +175,7 @@ private:
   std::string audio_path_;
   bool loop_{true};
   double fs_{48000.0};
-  int block_size_{256};
+  int block_size_{1024};
   double start_time_{0.0};
 
   int file_fs_{0};
