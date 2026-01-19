@@ -30,14 +30,14 @@ class Waypoint3DExecutor:
         ]
 
         # ===== Params =====
-        self.xy_tol   = rospy.get_param('~xy_tolerance', 0.15)   # m
-        self.z_tol    = rospy.get_param('~z_tolerance',  0.2)   # m
-        self.yaw_tol    = rospy.get_param('~yaw_tolerance',  0.5)   # degree
+        self.xy_tol   = rospy.get_param('~xy_tolerance', 0.2)   # m
+        self.z_tol    = rospy.get_param('~z_tolerance',  0.15)   # m
+        self.yaw_tol    = rospy.get_param('~yaw_tolerance',  10.0)   # degree
         self.speed    = rospy.get_param('~speed',         0.6)   # surge limit (0..1 fraction of max)
         self.yaw_kp   = rospy.get_param('~yaw_kp',        0.02)
-        self.surge_kp = rospy.get_param('~surge_kp',      0.05)
+        self.surge_kp = rospy.get_param('~surge_kp',      0.1)
         self.yaw_max  = rospy.get_param('~yaw_max',       0.5)   # +/- cmd limit
-        self.heave_scale = rospy.get_param('~heave_scale', 0.05) # scale /heave_control_input -> thrusters
+        self.heave_scale = rospy.get_param('~heave_scale', 1) # scale /heave_control_input -> thrusters
         # Compensate DepthControlNode's "target_depth = msg - 60" behavior:
         self.depth_controller_bias = rospy.get_param('~depth_controller_bias', 0.0)
 
@@ -106,6 +106,8 @@ class Waypoint3DExecutor:
 
     # ---------- Main loop ----------
     def update(self, event):
+        self.cmd.surge = 0.0
+        self.cmd.yaw   = 0.0
         if self.current_pos is None or self.current_yaw is None:
             rospy.loginfo_throttle(2.0, "Waiting for pose/yaw...")
             return
@@ -148,11 +150,11 @@ class Waypoint3DExecutor:
         if dist_xy > self.xy_tol:
             # Align first if far off heading
             if abs(yaw_err) > self.yaw_tol:
-                # print(f"yaw_err={yaw_err:.2f}°")
+                print(f"yaw_err={yaw_err:.2f}°")
                 self.cmd.surge = 0.0
                 self.cmd.yaw = self.compute_yaw_cmd(yaw_err)
             else:
-                # print(f"No yaw correction, dist_xy={dist_xy:.2f} m")
+                print(f"No yaw correction, dist_xy={dist_xy:.2f} m")
                 self.cmd.surge = self.compute_surge_cmd(dist_xy)
                 self.cmd.yaw = 0.0
 

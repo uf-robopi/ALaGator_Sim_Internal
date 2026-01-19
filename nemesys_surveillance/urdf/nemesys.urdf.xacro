@@ -33,44 +33,39 @@ Email: adnanabdullah@ufl.edu
     </material>
     
     <!-- base_link DEFINITION -->
-    <link name="base_link" />
+    <!-- <link name="base_link" /> -->
 
 
-    <!-- main_body_link_nemesys DEFINITION -->
-    <link name="main_body_link_nemesys">
+    <!-- base_link DEFINITION -->
+    <link name="base_link">
         <visual>
             <geometry>
-                <mesh filename="package://nemesys_surveillance/meshes/main_body_link_nemesys.STL" 
+                <mesh filename="package://nemesys_surveillance/meshes/NemeSys_adjusted.stl" 
                       scale="${scale_size} ${scale_size} ${scale_size}" />
             </geometry>
-            <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
+            <origin xyz="0 0 0" rpy="0 0 0" />
             <material name="Custom_Color" />
         </visual>
 
         <collision>
             <geometry>
-                <mesh filename="package://nemesys_surveillance/meshes/main_body_link_nemesys.STL" 
+                <mesh filename="package://nemesys_surveillance/meshes/NemeSys_adjusted.stl" 
                       scale="${scale_size} ${scale_size} ${scale_size}" />
             </geometry>
-            <origin xyz="0 0 0" rpy="${pi/2} 0 0" /> 
+            <origin xyz="0 0 0" rpy="0 0 0" /> 
         </collision>
 
         <inertial>
-            <origin xyz="${scale_size*-0.8e-3} 0 ${scale_size*-4.55e-3}" rpy="0 0 0" />
-            <mass value="8.6" />
-            <inertia ixx="41763721.74e-9" ixy="76.64e-9" ixz="-1071029.52e-9"
-                     iyy="99391057.27e-9" iyz="603.74e-9"
-                     izz="101413261.83e-9" />
+            <!-- Put COM at 0 initially unless you KNOW it's offset -->
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <mass value="8.6"/>
+            <inertia
+                ixx="0.02930236" ixy="0.0" ixz="0.0"
+                iyy="0.07848640" iyz="0.0"
+                izz="0.07848640"/>
         </inertial>
+
     </link>
-
-    <!-- base_link TO main_body_link_nemesys JOINT DEFINITION -->
-    <joint name="base_to_main_body_joint" type="fixed">
-        <parent link="base_link" />
-        <child link="main_body_link_nemesys" />
-        <origin xyz="0 0 ${scale_size*tube_od/2}" rpy="0 0 0" />
-    </joint>
-
 
     <!-- front_right_thruster_link_nemesys DEFINITION -->
     <link name="front_right_thruster_link_nemesys">
@@ -100,11 +95,11 @@ Email: adnanabdullah@ufl.edu
         </inertial>
     </link>
  
-    <!-- main_body_link_nemesys TO front_right_thruster_link_nemesys JOINT DEFINITION -->
+    <!-- base_link TO front_right_thruster_link_nemesys JOINT DEFINITION -->
     <joint name="body_to_fr_thruster_joint" type="continuous">
-        <parent link="main_body_link_nemesys" />
+        <parent link="base_link" />
         <child link="front_right_thruster_link_nemesys" />
-        <origin xyz="${scale_size*-0.325} ${scale_size*0.24} 0" rpy="0 0 0"/>
+        <origin xyz="${scale_size*0.0} ${scale_size*-0.24} ${scale_size*0.0}" rpy="0 0 0"/>
         <axis xyz="0 0 1" />
     </joint>
 
@@ -137,11 +132,11 @@ Email: adnanabdullah@ufl.edu
         </inertial>
     </link>
  
-    <!-- main_body_link_nemesys TO front_left_thruster_link_nemesys JOINT DEFINITION -->
+    <!-- base_link TO front_left_thruster_link_nemesys JOINT DEFINITION -->
     <joint name="body_to_fl_thruster_joint" type="continuous">
-        <parent link="main_body_link_nemesys" />
+        <parent link="base_link" />
         <child link="front_left_thruster_link_nemesys" />
-        <origin xyz="${scale_size*-0.325} ${scale_size*-0.24} 0" rpy="0 0 0"/>  
+        <origin xyz="${scale_size*0.0} ${scale_size*0.24} ${scale_size*0.0}" rpy="0 0 0"/>  
         <axis xyz="0 0 1" />
     </joint>
 
@@ -174,11 +169,11 @@ Email: adnanabdullah@ufl.edu
         </inertial>
     </link>
  
-    <!-- main_body_link_nemesys TO rear_right_thruster_link_nemesys JOINT DEFINITION -->
+    <!-- base_link TO rear_right_thruster_link_nemesys JOINT DEFINITION -->
     <joint name="body_to_rr_thruster_joint" type="continuous">
-        <parent link="main_body_link_nemesys" />
+        <parent link="base_link" />
         <child link="rear_right_thruster_link_nemesys" />
-        <origin xyz="${scale_size*-0.61} ${scale_size*0.11} ${scale_size*0.004}" rpy="0 0 0"/>  
+        <origin xyz="${scale_size*-0.25} ${scale_size*-0.11} ${scale_size*0.0}" rpy="0 0 0"/>  
         <axis xyz="1 0 0" />
     </joint>
 
@@ -211,11 +206,11 @@ Email: adnanabdullah@ufl.edu
         </inertial>
     </link>
  
-    <!-- main_body_link_nemesys TO rear_left_thruster_link_nemesys JOINT DEFINITION -->
+    <!-- base_link TO rear_left_thruster_link_nemesys JOINT DEFINITION -->
     <joint name="body_to_rl_thruster_joint" type="continuous">
-        <parent link="main_body_link_nemesys" />
+        <parent link="base_link" />
         <child link="rear_left_thruster_link_nemesys" />
-        <origin xyz="${scale_size*-0.60058} ${scale_size*-0.11} ${scale_size*0.004}" rpy="0 0 0"/>  
+        <origin xyz="${scale_size*-0.25} ${scale_size*0.11} ${scale_size*-0.0}" rpy="0 0 0"/>  
         <axis xyz="1 0 0" />
     </joint>
 
@@ -246,11 +241,11 @@ Email: adnanabdullah@ufl.edu
         </inertial>
     </link>
  
-    <!-- main_body_link_nemesys TO downward_camera_link JOINT DEFINITION -->
+    <!-- base_link TO downward_camera_link JOINT DEFINITION -->
     <joint name="body_to_down_cam_joint" type="fixed">
-        <parent link="main_body_link_nemesys" />
+        <parent link="base_link" />
         <child link="downward_camera_link" />
-        <origin xyz="${scale_size*-0.04591} 0 ${scale_size*0.0687}" rpy="${-pi/2} ${-pi/2} 0"/>  
+        <origin xyz="${scale_size*0.14591} 0 ${scale_size*-0.2687}" rpy="0 ${pi/2} 0"/>  
     </joint>
 
 
@@ -280,11 +275,11 @@ Email: adnanabdullah@ufl.edu
         </inertial>
     </link>
  
-    <!-- main_body_link_nemesys TO front_camera_link JOINT DEFINITION -->
+    <!-- base_link TO front_camera_link JOINT DEFINITION -->
     <joint name="body_to_front_cam_joint" type="fixed">
-        <parent link="main_body_link_nemesys" />
+        <parent link="base_link" />
         <child link="front_camera_link" />
-        <origin xyz="${scale_size*0.186} 0 0" rpy="${pi} 0 0"/>  
+        <origin xyz="${scale_size*0.32} 0 0" rpy="0 0 0"/>  
     </joint>
 
 
@@ -298,12 +293,12 @@ Email: adnanabdullah@ufl.edu
             <material name="Black" />
         </visual>
  
-        <collision>
+        <!-- <collision>
             <geometry>
                 <sphere radius = "${scale_size*0.001}"/>
             </geometry>
             <origin xyz="0 0 0" rpy="0 0 0" />
-        </collision>
+        </collision> -->
  
         <inertial>
             <origin xyz="0 0 0" rpy="0 0 0" />
@@ -314,11 +309,11 @@ Email: adnanabdullah@ufl.edu
         </inertial>
     </link>
  
-    <!-- main_body_link_nemesys TO bar30_sensor_link JOINT DEFINITION -->
+    <!-- base_link TO bar30_sensor_link JOINT DEFINITION -->
     <joint name="body_to_bar30_joint" type="fixed">
-        <parent link="main_body_link_nemesys" />
+        <parent link="base_link" />
         <child link="bar30_sensor_link" />
-        <origin xyz="${scale_size*-0.16684} 0 0" rpy="0 0 0"/>  
+        <origin xyz="${scale_size*0} 0 ${scale_size*0.01}" rpy="0 0 0"/>  
     </joint>
 
 
@@ -348,9 +343,9 @@ Email: adnanabdullah@ufl.edu
         </inertial>
     </link>
  
-    <!-- main_body_link_nemesys TO imu_link JOINT DEFINITION -->
+    <!-- base_link TO imu_link JOINT DEFINITION -->
     <joint name="body_to_imu_joint" type="fixed">
-        <parent link="main_body_link_nemesys" />
+        <parent link="base_link" />
         <child link="imu_link" />
         <origin xyz="0 0 0" rpy="0 0 0"/>
     </joint>
@@ -361,7 +356,7 @@ Email: adnanabdullah@ufl.edu
         <visual>
             <origin xyz="0 0 0" rpy="0 0 0"/>
             <geometry>
-            <cylinder radius="0.02" length="0.05"/>
+            <cylinder radius="0.01" length="0.03"/>
             </geometry>
             <material name="Green">
             <color rgba="0 1 0 1"/>
@@ -371,7 +366,7 @@ Email: adnanabdullah@ufl.edu
         <collision>
             <origin xyz="0 0 0" rpy="0 0 0"/>
             <geometry>
-            <cylinder radius="0.02" length="0.05"/>
+            <cylinder radius="0.01" length="0.03"/>
             </geometry>
         </collision>
 
@@ -387,7 +382,7 @@ Email: adnanabdullah@ufl.edu
     </link>
 
         <joint name="body_to_hydrophone_joint" type="fixed">
-        <parent link="main_body_link_nemesys"/>
+        <parent link="base_link"/>
         <child link="hydrophone_link"/>
         <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
         </joint>
@@ -456,7 +451,7 @@ Email: adnanabdullah@ufl.edu
         </plugin>
     </gazebo>
 
-    <gazebo reference="main_body_link_nemesys">
+    <gazebo reference="base_link">
         <material>Gazebo/White</material>
     </gazebo>
 
@@ -650,41 +645,43 @@ Email: adnanabdullah@ufl.edu
 
     <!-- BAR30 SENSOR (DEPTH) PLUGIN -->
     <gazebo reference="bar30_sensor_link">
-    <sensor type="ray" name="depth_sensor">
-        <pose>0 0 0 0 0 0</pose>
-        <visualize>true</visualize>
-        <update_rate>10</update_rate>
-        <ray>
+        <sensor type="ray" name="depth_sensor">
+            <!-- Rotate so +X points to +Z (up) -->
+            <pose>0 0 0 0 -1.570796 0</pose>
+
+            <visualize>true</visualize>
+            <update_rate>10</update_rate>
+
+            <ray>
             <scan>
                 <horizontal>
-                    <samples>1</samples>
+                    <samples>61</samples>
                     <resolution>1</resolution>
-                    <min_angle>.000001</min_angle>
-                    <max_angle>0</max_angle>
+                    <min_angle>-0.261799</min_angle>  <!-- -15 deg -->
+                    <max_angle> 0.261799</max_angle>  <!-- +15 deg -->
                 </horizontal>
-                <vertical>
-                    <samples>2</samples>
-                    <resolution>1</resolution>
-                    <min_angle>-1.570796</min_angle>
-                    <max_angle>-1.570795</max_angle>
-                </vertical>
             </scan>
+
+
             <range>
-                <min>-100</min>
-                <max>100.0</max>
+                <!-- MUST be non-negative -->
+                <min>0.05</min>
+                <max>200.0</max>
                 <resolution>0.01</resolution>
             </range>
+
             <noise>
                 <type>gaussian</type>
                 <mean>0.0</mean>
                 <stddev>0.01</stddev>
             </noise>
-        </ray>
-        <plugin name="gazebo_ros_head_hokuyo_controller" filename="libgazebo_ros_laser.so">
+            </ray>
+
+            <plugin name="gazebo_ros_laser" filename="libgazebo_ros_laser.so">
             <topicName>/raw_depth_data</topicName>
             <frameName>bar30_sensor_link</frameName>
-        </plugin>
-    </sensor>
+            </plugin>
+        </sensor>
     </gazebo>
 
 

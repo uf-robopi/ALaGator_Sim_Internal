@@ -9,7 +9,7 @@ Email: adnanabdullah@ufl.edu
 
     <!-- Launch file arguments. -->
     <arg name="use_sim_time" default="true"/>
-    <arg name="world_name" default="cylinder_pod_array.world"/>
+    <arg name="world_name" default="spoke_pods.world"/>
     <arg name="enable_ros_network" default="true" />
 
     <env name="GAZEBO_PLUGIN_PATH"
@@ -61,7 +61,7 @@ Email: adnanabdullah@ufl.edu
 
     <!-- Spawning the robot in Gazebo -->
     <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" output="screen"
-            args="-x 0.5 -y 0.0 -z -58.3 -urdf -model nemesys -param robot_description -R 3.1416 -P 0.0 -Y 3." />
+            args="-x 0.5 -y 0.0 -z -55.3 -urdf -model nemesys -param robot_description -R 0.0 -P 0.0 -Y 0.0" />
     
     <!-- Static tf from world to odom/map frame -->
     <node pkg="tf" type="static_transform_publisher" name="world_to_map"
@@ -103,9 +103,9 @@ Email: adnanabdullah@ufl.edu
 
 
     <!-- Launching the static hydrophone model in Gazebo -->
-    <node pkg="gazebo_ros" type="spawn_model" name="spawn_hydrophone_1" output="screen"
+    <!-- <node pkg="gazebo_ros" type="spawn_model" name="spawn_hydrophone_1" output="screen"
       args="-file $(find uw_acoustics)/models/hydro_left/model.sdf
-            -sdf -model hydrophone_static -x $(arg static_x) -y $(arg static_y) -z $(arg static_z)" />
+            -sdf -model hydrophone_static -x $(arg static_x) -y $(arg static_y) -z $(arg static_z)" /> -->
 
 
 

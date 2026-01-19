@@ -103,7 +103,7 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        main_body_link_nemesys:
+        base_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -149,7 +149,7 @@ Visualization Manager:
           Value: true
         imu_link:
           Value: false
-        main_body_link_nemesys:
+        base_link:
           Value: false
         map:
           Value: true
@@ -174,7 +174,6 @@ Visualization Manager:
           map:
             odom:
               base_link:
-                main_body_link_nemesys:
                   bar30_sensor_link:
                     {}
                   downward_camera_link:

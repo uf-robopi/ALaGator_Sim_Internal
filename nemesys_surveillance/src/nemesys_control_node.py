@@ -1,107 +1,215 @@
 #!/usr/bin/env python3
-
 # =====================================
 # Author : Adnan Abdullah
 # Email: adnanabdullah@ufl.edu
 # =====================================
 
 import rospy
+import numpy as np
 from nemesys_interfaces.msg import nemesysInput
-from geometry_msgs.msg import Wrench, Vector3
+from geometry_msgs.msg import Wrench
 from std_msgs.msg import Float32
 from gazebo_msgs.msg import LinkStates
-from tf.transformations import *
 from scipy.spatial.transform import Rotation as R
-import numpy as np
-import os
 import tf
 
 
-class nemesysControlNode:
+class NemesysControlNode:
+    """
+    Safer rewrite of the original node:
+      - No stale thrust: missing/None inputs become 0
+      - Deadband + clamp on commands
+      - Optional 'armed' gate (thrust disabled until first command)
+      - Robust link index lookup with caching
+      - Symmetric thrust computation
+      - Cleaner quaternion/rotation usage
+      - Drag model is guarded (no state clipping), optional torque damping
+    """
+
     def __init__(self):
-        rospy.init_node('nemesys_control_node')
+        rospy.init_node("nemesys_control_node")
 
-        # Subscribers
-        self.user_input_sub = rospy.Subscriber(
-            name="/nemesys/user_input", data_class=nemesysInput, callback=self.input_callback)
-        self.gazebo_states_sub = rospy.Subscriber(
-            name="/gazebo/link_states", data_class=LinkStates, callback=self.states_callback)
+        # -------------------------
+        # Params (tune as needed)
+        # -------------------------
+        self.max_forward_force = rospy.get_param("~max_forward_force", 51.485)  # N
+        self.max_reverse_force = rospy.get_param("~max_reverse_force", 40.207)  # N
 
-        # Publishers
-        self.front_right_thrust_pub = rospy.Publisher(
-            name="/front_right_thrust", data_class=Wrench, queue_size=1)
-        self.front_left_thrust_pub = rospy.Publisher(
-            name="/front_left_thrust", data_class=Wrench, queue_size=1)
-        self.rear_right_thrust_pub = rospy.Publisher(
-            name="/rear_right_thrust", data_class=Wrench, queue_size=1)
-        self.rear_left_thrust_pub = rospy.Publisher(
-            name="/rear_left_thrust", data_class=Wrench, queue_size=1)
-        self.drag_force_pub = rospy.Publisher(
-            name="/drag_force", data_class=Wrench, queue_size=1)
-        self.deviation_error_publisher = rospy.Publisher(
-            name="/deviation_error", data_class=Float32, queue_size=1)
-        self.tf_broadcaster = tf.TransformBroadcaster()
+        # Command shaping
+        self.cmd_deadband = rospy.get_param("~cmd_deadband", 0.02)
+        self.cmd_limit = rospy.get_param("~cmd_limit", 1.0)
 
-        # Parameters
+        # If True, publish zero thrust until at least one user_input is received
+        self.require_first_command = rospy.get_param("~require_first_command", True)
+        self._have_cmd = False
+
+        # Drag model (can disable quickly)
+        self.enable_drag = rospy.get_param("~enable_drag", True)
+
+        # Force drag
+        self.rho = rospy.get_param("~water_density", 1000.0)
+        self.drag_coef_force = rospy.get_param("~drag_coef_force", 1.2)
+        # Projected areas in body axes [Ax, Ay, Az]
+        self.area = np.array(rospy.get_param("~projected_area", [0.053, 0.065, 0.087]),
+                             dtype=np.float64)
+
+        # Rotational damping (simple, stable) tau = -k * w
+        # This is NOT quadratic; it's intentionally stable in simulation.
+        self.enable_rot_damping = rospy.get_param("~enable_rot_damping", True)
+        self.rot_damping = np.array(rospy.get_param("~rot_damping", [2.0, 2.0, 2.0]),
+                                    dtype=np.float64)  # N*m per (rad/s)
+
+        # Cap drag outputs (avoid insane wrenches if something explodes)
+        self.max_drag_force = rospy.get_param("~max_drag_force", 200.0)
+        self.max_drag_torque = rospy.get_param("~max_drag_torque", 50.0)
+
+        # -------------------------
+        # State (thrust commands)
+        # -------------------------
         self.front_right_thrust_raw = 0.0
         self.front_left_thrust_raw = 0.0
         self.rear_right_thrust_raw = 0.0
         self.rear_left_thrust_raw = 0.0
 
-        self.max_forward_force = 51.485 # Newtons
-        self.max_reverse_force = 40.207 # Newtons
+        # Cached indices into /gazebo/link_states
+        self.idx = {
+            "fr": None,
+            "fl": None,
+            "rr": None,
+            "rl": None,
+            "base": None,
+        }
 
+        # -------------------------
+        # ROS I/O
+        # -------------------------
+        self.user_input_sub = rospy.Subscriber(
+            "/nemesys/user_input", nemesysInput, self.input_callback, queue_size=1
+        )
+        self.gazebo_states_sub = rospy.Subscriber(
+            "/gazebo/link_states", LinkStates, self.states_callback, queue_size=1
+        )
 
-        # self.log_file_path = os.path.expanduser("/home/alankrit/Desktop/deviation_error_log.txt")
-        # self.log_file = open(self.log_file_path, "a")
-        # self.log_file.write("Timestamp,Deviation_Error\n")
-        
+        self.front_right_thrust_pub = rospy.Publisher("/front_right_thrust", Wrench, queue_size=1)
+        self.front_left_thrust_pub = rospy.Publisher("/front_left_thrust", Wrench, queue_size=1)
+        self.rear_right_thrust_pub = rospy.Publisher("/rear_right_thrust", Wrench, queue_size=1)
+        self.rear_left_thrust_pub = rospy.Publisher("/rear_left_thrust", Wrench, queue_size=1)
 
+        self.drag_force_pub = rospy.Publisher("/drag_force", Wrench, queue_size=1)
+        self.deviation_error_pub = rospy.Publisher("/deviation_error", Float32, queue_size=1)
+
+        self.tf_broadcaster = tf.TransformBroadcaster()
+
+        rospy.loginfo("nemesys_control_node: initialized")
+
+    # -------------------------
+    # Helpers
+    # -------------------------
+    def _shape_cmd(self, x):
+        """None -> 0, apply deadband and clamp to [-cmd_limit, cmd_limit]."""
+        if x is None:
+            return 0.0
+        try:
+            x = float(x)
+        except Exception:
+            return 0.0
+        if abs(x) < self.cmd_deadband:
+            return 0.0
+        return float(np.clip(x, -self.cmd_limit, self.cmd_limit))
+
+    def _ensure_indices(self, names):
+        """Cache link indices once (or refresh if missing)."""
+        if self.idx["base"] is not None:
+            return True
+
+        wanted = {
+            "fr": "nemesys::front_right_thruster_link_nemesys",
+            "fl": "nemesys::front_left_thruster_link_nemesys",
+            "rr": "nemesys::rear_right_thruster_link_nemesys",
+            "rl": "nemesys::rear_left_thruster_link_nemesys",
+            "base": "nemesys::base_link",
+        }
+
+        found = {}
+        for k, n in wanted.items():
+            try:
+                found[k] = names.index(n)
+            except ValueError:
+                found[k] = None
+
+        if any(found[k] is None for k in found):
+            # Not ready yet; Gazebo might not have published all links
+            return False
+
+        self.idx.update(found)
+        rospy.loginfo("Cached link indices: %s", str(self.idx))
+        return True
+
+    def _rot_from_pose(self, pose):
+        """Return scipy Rotation from geometry_msgs/Pose orientation."""
+        q = np.array([pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w],
+                     dtype=np.float64)
+        # Normalize safely
+        n = np.linalg.norm(q)
+        if n < 1e-12 or not np.isfinite(n):
+            # Identity if invalid
+            return R.from_quat([0.0, 0.0, 0.0, 1.0])
+        q /= n
+        return R.from_quat(q)
+
+    def _publish_zero_thrust(self):
+        z = Wrench()
+        self.front_right_thrust_pub.publish(z)
+        self.front_left_thrust_pub.publish(z)
+        self.rear_right_thrust_pub.publish(z)
+        self.rear_left_thrust_pub.publish(z)
+
+    # -------------------------
+    # Callbacks
+    # -------------------------
     def input_callback(self, msg):
-        surge = msg.surge
-        heave = msg.heave
-        roll = msg.roll
-        yaw = msg.yaw
+        # Shape commands
+        surge = self._shape_cmd(getattr(msg, "surge", None))
+        heave = self._shape_cmd(getattr(msg, "heave", None))
+        roll = self._shape_cmd(getattr(msg, "roll", None))
+        yaw = self._shape_cmd(getattr(msg, "yaw", None))
 
-        if surge is not None and yaw is not None:
-            if surge >= 0:
-                surge_force = self.max_forward_force
-            else:
-                surge_force = self.max_reverse_force
+        # Mark armed if we require first command
+        if self.require_first_command:
+            if (surge != 0.0) or (heave != 0.0) or (roll != 0.0) or (yaw != 0.0):
+                self._have_cmd = True
+        else:
+            self._have_cmd = True
 
+        # Compute force scale (symmetric)
+        surge_force = self.max_forward_force if surge >= 0.0 else self.max_reverse_force
+        heave_force = self.max_forward_force if heave <= 0.0 else self.max_reverse_force
+
+        # Rear thrusters control surge+yaw
         self.rear_left_thrust_raw = surge_force * (surge + yaw)
         self.rear_right_thrust_raw = surge_force * (surge - yaw)
 
-
-        if heave is not None and roll is not None:
-            if heave <= 0:
-                heave_force = self.max_forward_force
-            else:
-                heave_force = self.max_reverse_force
-
+        # Front thrusters control heave+roll
         self.front_left_thrust_raw = heave_force * (heave + roll)
         self.front_right_thrust_raw = heave_force * (heave - roll)
 
-
-
     def states_callback(self, msg):
-        for i in range(len(msg.name)):
-            if msg.name[i]=="nemesys::front_right_thruster_link_nemesys":
-                frt_i = i
-            if msg.name[i]=="nemesys::front_left_thruster_link_nemesys":
-                flt_i = i
-            if msg.name[i]=="nemesys::rear_right_thruster_link_nemesys":
-                rrt_i = i
-            if msg.name[i]=="nemesys::rear_left_thruster_link_nemesys":
-                rlt_i = i
-            if msg.name[i]=="nemesys::base_link":
-                base_i = i
+        # Ensure indices exist
+        if not self._ensure_indices(msg.name):
+            return
 
-        # Extract base_link pose from Gazebo
-        pos = msg.pose[base_i].position
-        ori = msg.pose[base_i].orientation
+        base_i = self.idx["base"]
+        fr_i = self.idx["fr"]
+        fl_i = self.idx["fl"]
+        rr_i = self.idx["rr"]
+        rl_i = self.idx["rl"]
 
-        # Broadcast odom -> base_link
+        # Base pose/orientation
+        base_pose = msg.pose[base_i]
+        pos = base_pose.position
+        ori = base_pose.orientation
+
+        # Broadcast odom->base_link
         self.tf_broadcaster.sendTransform(
             (pos.x, pos.y, pos.z),
             (ori.x, ori.y, ori.z, ori.w),
@@ -110,117 +218,104 @@ class nemesysControlNode:
             "odom"
         )
 
-        deviation_error = Float32()
-        deviation_error.data = msg.pose[base_i].position.y
-        timestamp = rospy.get_time()
-        self.deviation_error_publisher.publish(deviation_error)
+        # Deviation error
+        dev = Float32()
+        dev.data = float(pos.y)
+        self.deviation_error_pub.publish(dev)
 
-        # log_entry = f"{timestamp},{deviation_error.data}\n"
-        # self.log_file.write(log_entry)
-        # self.log_file.flush()
+        # If not armed yet, keep thrust zero (prevents stale forces at startup)
+        if self.require_first_command and not self._have_cmd:
+            self._publish_zero_thrust()
+        else:
+            # Publish thrusts in WORLD frame using each thruster link orientation.
+            # We define the desired thrust vector in the THRUSTER-LINK frame:
+            #   - Front thrusters: +Z
+            #   - Rear thrusters: +X
+            fr_R = self._rot_from_pose(msg.pose[fr_i])
+            fl_R = self._rot_from_pose(msg.pose[fl_i])
+            rr_R = self._rot_from_pose(msg.pose[rr_i])
+            rl_R = self._rot_from_pose(msg.pose[rl_i])
 
-        
-        # Calculation of The Final Thrust on The Front Right Thruster
-        fr_rotation = [msg.pose[frt_i].orientation.x, msg.pose[frt_i].orientation.y, msg.pose[frt_i].orientation.z, msg.pose[frt_i].orientation.w]
-        frt_vec_before = [0, 0, self.front_right_thrust_raw, 0]
-        frt_vec_after = quaternion_multiply(quaternion_multiply(fr_rotation, frt_vec_before), quaternion_conjugate(fr_rotation))
-        front_right_thrust = Wrench()
-        front_right_thrust.force.x = frt_vec_after[0]
-        front_right_thrust.force.y = frt_vec_after[1]
-        front_right_thrust.force.z = frt_vec_after[2]
-        self.front_right_thrust_pub.publish(front_right_thrust)
+            # Desired in-link vectors
+            fr_vec_link = np.array([0.0, 0.0, self.front_right_thrust_raw], dtype=np.float64)
+            fl_vec_link = np.array([0.0, 0.0, self.front_left_thrust_raw], dtype=np.float64)
+            rr_vec_link = np.array([self.rear_right_thrust_raw, 0.0, 0.0], dtype=np.float64)
+            rl_vec_link = np.array([self.rear_left_thrust_raw, 0.0, 0.0], dtype=np.float64)
 
-        # Calculation of The Final Thrust on The Front Left Thruster
-        fl_rotation = [msg.pose[flt_i].orientation.x, msg.pose[flt_i].orientation.y, msg.pose[flt_i].orientation.z, msg.pose[flt_i].orientation.w]
-        flt_vec_before = [0, 0, self.front_left_thrust_raw, 0]
-        flt_vec_after = quaternion_multiply(quaternion_multiply(fl_rotation, flt_vec_before), quaternion_conjugate(fl_rotation))
-        front_left_thrust = Wrench()
-        front_left_thrust.force.x = flt_vec_after[0]
-        front_left_thrust.force.y = flt_vec_after[1]
-        front_left_thrust.force.z = flt_vec_after[2]
-        self.front_left_thrust_pub.publish(front_left_thrust)
+            # Rotate to world
+            fr_vec_world = fr_R.apply(fr_vec_link)
+            fl_vec_world = fl_R.apply(fl_vec_link)
+            rr_vec_world = rr_R.apply(rr_vec_link)
+            rl_vec_world = rl_R.apply(rl_vec_link)
 
-        # Calculation of The Final Thrust on The Rear Right Thruster
-        rr_rotation = [msg.pose[rrt_i].orientation.x, msg.pose[rrt_i].orientation.y, msg.pose[rrt_i].orientation.z, msg.pose[rrt_i].orientation.w]
-        rrt_vec_before= [self.rear_right_thrust_raw, 0, 0, 0]
-        rrt_vec_after = quaternion_multiply(quaternion_multiply(rr_rotation, rrt_vec_before), quaternion_conjugate(rr_rotation))
-        rear_right_thrust = Wrench()
-        rear_right_thrust.force.x = rrt_vec_after[0]
-        rear_right_thrust.force.y = rrt_vec_after[1]
-        rear_right_thrust.force.z = rrt_vec_after[2]
-        self.rear_right_thrust_pub.publish(rear_right_thrust)
+            # Publish
+            w = Wrench()
+            w.force.x, w.force.y, w.force.z = fr_vec_world.tolist()
+            self.front_right_thrust_pub.publish(w)
 
-        # Calculation of The Final Thrust on The Rear Left Thruster
-        rl_rotation = [msg.pose[rlt_i].orientation.x, msg.pose[rlt_i].orientation.y, msg.pose[rlt_i].orientation.z, msg.pose[rlt_i].orientation.w]
-        rlt_vec_before = [self.rear_left_thrust_raw, 0, 0, 0]
-        rlt_vec_after = quaternion_multiply(quaternion_multiply(rl_rotation, rlt_vec_before), quaternion_conjugate(rl_rotation))
-        rear_left_thrust = Wrench()
-        rear_left_thrust.force.x = rlt_vec_after[0]
-        rear_left_thrust.force.y = rlt_vec_after[1]
-        rear_left_thrust.force.z = rlt_vec_after[2]
-        self.rear_left_thrust_pub.publish(rear_left_thrust)
+            w = Wrench()
+            w.force.x, w.force.y, w.force.z = fl_vec_world.tolist()
+            self.front_left_thrust_pub.publish(w)
 
+            w = Wrench()
+            w.force.x, w.force.y, w.force.z = rr_vec_world.tolist()
+            self.rear_right_thrust_pub.publish(w)
 
-        # Drage Force Calculations
-        
-        # Reference frame {B} is achieved after rotation of reference frame {A} by quaternion A_quat_B. Both reference frames represent the base_link.
-        
-        A_quat_B = [msg.pose[base_i].orientation.x, msg.pose[base_i].orientation.y, msg.pose[base_i].orientation.z, msg.pose[base_i].orientation.w]
-        A_quat_B /= np.linalg.norm(A_quat_B)
-        A_R_B = (R.from_quat(A_quat_B)).as_matrix()
-        
-        lin_rel_vel_in_A = [msg.twist[base_i].linear.x, msg.twist[base_i].linear.y, msg.twist[base_i].linear.z]
-        ang_rel_vel_in_A = [msg.twist[base_i].angular.x, msg.twist[base_i].angular.y, msg.twist[base_i].angular.z]
-        lin_rel_vel_in_B = np.transpose(A_R_B) @ lin_rel_vel_in_A
-        ang_rel_vel_in_B = np.transpose(A_R_B) @ ang_rel_vel_in_A
+            w = Wrench()
+            w.force.x, w.force.y, w.force.z = rl_vec_world.tolist()
+            self.rear_left_thrust_pub.publish(w)
 
-        # print("Relative Linear Velocity in B:", lin_rel_vel_in_B)  # Debugging
-        # print("Relative Angular Velocity in B:", ang_rel_vel_in_B)  # Debugging
+        # Drag wrench
+        if not self.enable_drag:
+            return
 
-        # Added to avoid nan/inf
-        lin_rel_vel_in_B = np.clip(np.transpose(A_R_B) @ lin_rel_vel_in_A, -0.99, 0.99)
-        ang_rel_vel_in_B = np.clip(np.transpose(A_R_B) @ ang_rel_vel_in_A, -0.99, 0.99)
+        # Base rotation: body->world
+        base_R = self._rot_from_pose(base_pose)
+        R_bw = base_R.as_matrix()            # body -> world
+        R_wb = R_bw.T                        # world -> body
 
-        rho = 1000  # Water Density
-        area = [0.053, 0.065, 0.087] # Projected area in m^2
-        drag_coef_force = 1.2 # For cylinders
-        drag_coef_torque = drag_coef_force * np.array([0.05, 0.1, 0.1])
+        # Velocities in world (Gazebo gives twist in world frame for LinkStates)
+        v_w = np.array([msg.twist[base_i].linear.x,
+                        msg.twist[base_i].linear.y,
+                        msg.twist[base_i].linear.z], dtype=np.float64)
 
-        drag_force_in_B = np.zeros(3)
-        drag_torque_in_B = np.zeros(3)
-        for i in range(len(lin_rel_vel_in_B)):
-            drag_force_in_B[i] = -(1/2) * rho * drag_coef_force * area[i] * lin_rel_vel_in_B[i] * abs(lin_rel_vel_in_B[i])
-            drag_torque_in_B[i] = -(1/2) * rho * drag_coef_torque[i] * area[i] * ang_rel_vel_in_B[i] * abs(ang_rel_vel_in_B[i])
+        w_w = np.array([msg.twist[base_i].angular.x,
+                        msg.twist[base_i].angular.y,
+                        msg.twist[base_i].angular.z], dtype=np.float64)
 
-        drag_force_in_A = A_R_B @ drag_force_in_B
-        drag_torque_in_A = A_R_B @ drag_torque_in_B
+        if (not np.all(np.isfinite(v_w))) or (not np.all(np.isfinite(w_w))):
+            return
+
+        # Convert to body frame
+        v_b = R_wb @ v_w
+        w_b = R_wb @ w_w
+
+        # Quadratic drag force in body axes: F = -0.5*rho*Cd*A*v*|v|
+        drag_force_b = -0.5 * self.rho * self.drag_coef_force * self.area * v_b * np.abs(v_b)
+
+        # Rotational damping torque (stable): tau = -k * w
+        if self.enable_rot_damping:
+            drag_torque_b = -self.rot_damping * w_b
+        else:
+            drag_torque_b = np.zeros(3, dtype=np.float64)
+
+        # Cap outputs to avoid destabilizing physics
+        drag_force_b = np.clip(drag_force_b, -self.max_drag_force, self.max_drag_force)
+        drag_torque_b = np.clip(drag_torque_b, -self.max_drag_torque, self.max_drag_torque)
+
+        # Convert back to world
+        drag_force_w = R_bw @ drag_force_b
+        drag_torque_w = R_bw @ drag_torque_b
 
         drag = Wrench()
-        drag.force.x = drag_force_in_A[0]
-        drag.force.y = drag_force_in_A[1]
-        drag.force.z = drag_force_in_A[2]
-        drag.torque.x = drag_torque_in_A[0]
-        drag.torque.y = drag_torque_in_A[1]
-        drag.torque.z = drag_torque_in_A[2]
+        drag.force.x, drag.force.y, drag.force.z = drag_force_w.tolist()
+        drag.torque.x, drag.torque.y, drag.torque.z = drag_torque_w.tolist()
         self.drag_force_pub.publish(drag)
 
-   
 
-    def shutdown_hook(self):
-        """Close the file when the node shuts down."""
-        try:
-            if self.log_file:
-                self.log_file.close()
-                rospy.loginfo("Deviation error log file closed.")
-        except AttributeError:
-            pass
-
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
-        node = nemesysControlNode()
-        rospy.on_shutdown(node.shutdown_hook)
+        node = NemesysControlNode()
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
