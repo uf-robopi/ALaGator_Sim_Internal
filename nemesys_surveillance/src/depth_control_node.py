@@ -37,13 +37,12 @@ class DepthControlNode:
         self.pid_last_time = None
         self.error_integral = 0.0
         self.count_integrated_errors = 5
-        self.max_speed = 0.05 # 5% of the max speed
         # self.target_depth = 1.4 # meters
         self.target_depth = 58.5 # meters, depth from surface
         self.is_target_depth_changed = False
-        self.kp_depth = 4.0
+        self.kp_depth = 1.6
         self.ki_depth = 0.0
-        self.kd_depth = 0.0
+        self.kd_depth = 0.9
 
         # self.depth_log_file = open("/home/alankrit/depth_data_log.txt", "a")
         # self.start_time = time.time()

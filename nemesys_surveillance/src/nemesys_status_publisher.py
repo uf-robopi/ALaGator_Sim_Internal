@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-
 # =====================================
 # Author : Adnan Abdullah
 # Email: adnanabdullah@ufl.edu
 # =====================================
 
 """
-Keyboard tele‑operation interface for nemesys.
- ‑ Manual planar movement with WASD‑like keys
- ‑ Vertical motion (“heave”) is overridden by /heave_control_input unless
-   the operator presses i (up) or k (down)
+Keyboard tele-operation interface for nemesys.
+ - Manual planar movement with WASD-like keys
+ - Vertical motion (“heave”) is overridden by /heave_control_input unless
+   the operator presses i (up) or k (down)
+ - Deadman: if no key press is seen for ~deadman_timeout_s, planar commands go to 0
 """
 
 from __future__ import print_function
@@ -18,12 +18,12 @@ import sys
 import select
 import termios
 import tty
+import time
 
 import rospy
 from std_msgs.msg import Float32, Bool
 from nemesys_interfaces.msg import nemesysInput
 
-# On‑screen banner
 BANNER = """
 Reading from the keyboard
 ---------------------------
@@ -39,7 +39,7 @@ Anything else : stop
 
 r / v : increase / decrease thruster power by 10 %%
 ---------------------------
-CTRL‑C to quit
+CTRL-C to quit
 """
 
 # (surge, sway, heave, roll, pitch, yaw)
@@ -53,7 +53,7 @@ MOVE_BINDINGS = {
     'x': (-1,          0, 0, 0, 0,  0),
     'c': (-(2**0.5)/2, 0, 0, 0, 0,  (2**0.5)/2),
 
-    'i': ( 0, 0, -1, 0, 0, 0),   # ascend
+    'i': ( 0, 0, -1, 0, 0, 0),   # ascend  (note: sign matches your earlier convention)
     'k': ( 0, 0,  1, 0, 0, 0),   # descend
 }
 
@@ -62,112 +62,138 @@ SPEED_BINDINGS = {
     'v': -0.10,     # slower
 }
 
-# Node implementation
-class nemesysTeleop:
+
+class NemesysTeleop:
     def __init__(self):
-        # Save terminal state so we can restore it on exit
         self._term_settings = termios.tcgetattr(sys.stdin)
 
-        # Publishers
-        self.cmd_pub  = rospy.Publisher("/nemesys/user_input",
-                                        nemesysInput, queue_size=1)
-        self.ind_pub  = rospy.Publisher("/depth_change_indicator",
-                                        Bool, queue_size=1)
+        self.cmd_pub = rospy.Publisher("/nemesys/user_input", nemesysInput, queue_size=1)
+        self.ind_pub = rospy.Publisher("/depth_change_indicator", Bool, queue_size=1)
 
-        # Subscriber: automated heave control
-        rospy.Subscriber("/heave_control_input",
-                         Float32, self._heave_control_cb, queue_size=1)
+        rospy.Subscriber("/heave_control_input", Float32, self._heave_control_cb, queue_size=1)
 
-        # Parameters / state
-        self.speed = rospy.get_param("~speed", 0.05)   # 5 % default
-        self.surge = self.heave = self.roll = self.yaw = 0.0
-        self.controlled_heave = 0.0                    # from topic
+        # Speed scaling (0..1)
+        self.speed = rospy.get_param("~speed", 0.05)
 
-        rospy.loginfo("Thruster power initialised to %.0f %%", self.speed * 100)
+        # Deadman timeout: if no key for this long, planar motion is zeroed
+        self.deadman_timeout_s = rospy.get_param("~deadman_timeout_s", 0.25)
 
-    
-    # I/O helpers
+        # Manual heave hold: i/k must be refreshed within this window to stay active
+        self.manual_heave_hold_s = rospy.get_param("~manual_heave_hold_s", 0.15)
+
+        # Current command state (unitless, -1..1 before speed scaling)
+        self.surge = 0.0
+        self.roll  = 0.0
+        self.yaw   = 0.0
+
+        # Heave control: either manual (-1..1) briefly, else controlled_heave from controller
+        self.controlled_heave = 0.0
+        self.manual_heave = 0.0
+        self._manual_heave_active_until = 0.0
+
+        self._last_key_time = time.time()
+
+        rospy.loginfo("Thruster power initialised to %.0f %%", self.speed * 100)
+
+    # ---------- Terminal key IO ----------
     def _get_key(self, timeout=0.05):
-        """
-        Return the next key press, or '' if none is available within *timeout*.
-        Non‑blocking thanks to a short select() timeout.
-        """
         tty.setraw(sys.stdin.fileno())
         rlist, _, _ = select.select([sys.stdin], [], [], timeout)
         key = sys.stdin.read(1) if rlist else ''
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self._term_settings)
         return key
 
-    
-    # Subscriber callback
+    # ---------- Subscriber ----------
     def _heave_control_cb(self, msg: Float32):
-        """Update automatic heave set‑point."""
-        self.controlled_heave = msg.data
-        rospy.logdebug("Heave override updated to %.3f", self.controlled_heave)
+        self.controlled_heave = float(msg.data)
 
-    
-    # Message publishing
-    def _publish_current_cmd(self):
-        """
-        Publish nemesysInput with either manual heave (if i/k pressed)
-        or the latest automatic heave from /heave_control_input.
-        """
-        depth_changed = (self.heave != 0)
+    # ---------- Publishing ----------
+    def _publish_cmd(self):
+        now = time.time()
+
+        # Deadman: if no recent key activity, stop planar commands
+        if (now - self._last_key_time) > self.deadman_timeout_s:
+            self.surge = 0.0
+            self.roll  = 0.0
+            self.yaw   = 0.0
+
+        # Manual heave active?
+        manual_active = now <= self._manual_heave_active_until
+        depth_changed = manual_active  # for the indicator topic
+
+        heave_to_send = self.manual_heave if manual_active else self.controlled_heave
 
         cmd = nemesysInput()
-        cmd.surge = self.surge * self.speed
-        cmd.heave = (self.heave if depth_changed else self.controlled_heave) * self.speed
-        cmd.roll  = self.roll  * self.speed
-        cmd.yaw   = self.yaw   * self.speed
-        self.cmd_pub.publish(cmd)
+        cmd.surge = float(self.surge * self.speed)
+        cmd.roll  = float(self.roll  * self.speed)
+        cmd.yaw   = float(self.yaw   * self.speed)
 
+        # NOTE: we do NOT multiply controller output by speed unless you really intend that.
+        # Usually /heave_control_input is already in [-1,1] command units.
+        # If you want scaling, keep "* self.speed" here; otherwise remove it.
+        cmd.heave = float(heave_to_send * self.speed)
+
+        self.cmd_pub.publish(cmd)
         self.ind_pub.publish(Bool(data=depth_changed))
 
-    def _stop_robot(self):
-        self.surge =  self.roll = self.yaw = 0.0
-        self.heave = self.controlled_heave
-        self._publish_current_cmd()
+    def _stop_all(self):
+        self.surge = 0.0
+        self.roll  = 0.0
+        self.yaw   = 0.0
+        self.manual_heave = 0.0
+        self._manual_heave_active_until = 0.0
+        self._publish_cmd()
 
-    
-    # Main loop
+    # ---------- Main loop ----------
     def run(self):
         print(BANNER)
-        rate = rospy.Rate(20)           # 20 Hz → 50 ms loop period
+        rate = rospy.Rate(20)
         try:
             while not rospy.is_shutdown():
-                key = self._get_key()
+                key = self._get_key(timeout=0.05)
+
+                if key:
+                    self._last_key_time = time.time()
 
                 # Movement keys
                 if key in MOVE_BINDINGS:
-                    (self.surge, _,
-                     self.heave, self.roll, _,
-                     self.yaw) = MOVE_BINDINGS[key]
+                    surge, _, heave, roll, _, yaw = MOVE_BINDINGS[key]
+                    self.surge = float(surge)
+                    self.roll  = float(roll)
+                    self.yaw   = float(yaw)
+
+                    # Manual heave is *momentary* (must be refreshed)
+                    if key in ('i', 'k'):
+                        self.manual_heave = float(heave)
+                        self._manual_heave_active_until = time.time() + self.manual_heave_hold_s
 
                 # Speed adjustment
                 elif key in SPEED_BINDINGS:
                     self.speed = max(0.0, min(1.0, self.speed + SPEED_BINDINGS[key]))
-                    rospy.loginfo("Thruster power now %.0f %%", self.speed * 100)
+                    rospy.loginfo("Thruster power now %.0f %%", self.speed * 100)
 
-                # Graceful quit on CTRL‑C
+                # Graceful quit on CTRL-C
                 elif key == '\x03':
-                    self._stop_robot()
+                    self._stop_all()
                     break
 
-                # Any other pressed key stops the robot
+                # Any other key: immediate stop (but heave returns to controller)
                 elif key != '':
-                    self._stop_robot()
+                    self.surge = 0.0
+                    self.roll  = 0.0
+                    self.yaw   = 0.0
+                    self.manual_heave = 0.0
+                    self._manual_heave_active_until = 0.0
 
-                # (If key == '' → no key this cycle → keep previous command)
-
-                self._publish_current_cmd()
+                # Publish every cycle
+                self._publish_cmd()
                 rate.sleep()
 
         finally:
-            self._stop_robot()
+            self._stop_all()
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self._term_settings)
-
 
 
 if __name__ == '__main__':
     rospy.init_node('nemesys_teleop_keyboard')
-    nemesysTeleop().run()
+    NemesysTeleop().run()

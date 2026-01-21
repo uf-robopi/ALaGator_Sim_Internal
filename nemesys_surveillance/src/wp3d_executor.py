@@ -150,11 +150,11 @@ class Waypoint3DExecutor:
         if dist_xy > self.xy_tol:
             # Align first if far off heading
             if abs(yaw_err) > self.yaw_tol:
-                print(f"yaw_err={yaw_err:.2f}°")
+                # print(f"yaw_err={yaw_err:.2f}°")
                 self.cmd.surge = 0.0
                 self.cmd.yaw = self.compute_yaw_cmd(yaw_err)
             else:
-                print(f"No yaw correction, dist_xy={dist_xy:.2f} m")
+                # print(f"No yaw correction, dist_xy={dist_xy:.2f} m")
                 self.cmd.surge = self.compute_surge_cmd(dist_xy)
                 self.cmd.yaw = 0.0
 

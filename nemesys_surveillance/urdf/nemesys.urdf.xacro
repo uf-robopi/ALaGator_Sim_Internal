@@ -173,7 +173,7 @@ Email: adnanabdullah@ufl.edu
     <joint name="body_to_rr_thruster_joint" type="continuous">
         <parent link="base_link" />
         <child link="rear_right_thruster_link_nemesys" />
-        <origin xyz="${scale_size*-0.25} ${scale_size*-0.11} ${scale_size*0.0}" rpy="0 0 0"/>  
+        <origin xyz="${scale_size*-0.27} ${scale_size*-0.11} ${scale_size*0.0}" rpy="0 0 0"/>  
         <axis xyz="1 0 0" />
     </joint>
 
@@ -210,7 +210,7 @@ Email: adnanabdullah@ufl.edu
     <joint name="body_to_rl_thruster_joint" type="continuous">
         <parent link="base_link" />
         <child link="rear_left_thruster_link_nemesys" />
-        <origin xyz="${scale_size*-0.25} ${scale_size*0.11} ${scale_size*-0.0}" rpy="0 0 0"/>  
+        <origin xyz="${scale_size*-0.27} ${scale_size*0.11} ${scale_size*-0.0}" rpy="0 0 0"/>  
         <axis xyz="1 0 0" />
     </joint>
 
@@ -477,7 +477,7 @@ Email: adnanabdullah@ufl.edu
         <plugin name="buoyancy" filename="libBuoyancyPlugin.so">
             <fluid_density>1000</fluid_density>
             <link name="base_link">
-                <center_of_volume>0 0 0</center_of_volume>
+                <center_of_volume>0 0 0.05</center_of_volume>
                 <volume>8.714e-3</volume>  
             </link>
 
@@ -649,7 +649,7 @@ Email: adnanabdullah@ufl.edu
             <!-- Rotate so +X points to +Z (up) -->
             <pose>0 0 0 0 -1.570796 0</pose>
 
-            <visualize>true</visualize>
+            <visualize>false</visualize>
             <update_rate>10</update_rate>
 
             <ray>
