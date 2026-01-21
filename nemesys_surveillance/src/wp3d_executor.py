@@ -36,8 +36,8 @@ class Waypoint3DExecutor:
         self.speed    = rospy.get_param('~speed',         0.6)   # surge limit (0..1 fraction of max)
         self.yaw_kp   = rospy.get_param('~yaw_kp',        0.02)
         self.surge_kp = rospy.get_param('~surge_kp',      0.1)
-        self.yaw_max  = rospy.get_param('~yaw_max',       0.5)   # +/- cmd limit
-        self.heave_scale = rospy.get_param('~heave_scale', 1) # scale /heave_control_input -> thrusters
+        self.yaw_max  = rospy.get_param('~yaw_max',       0.7)   # +/- cmd limit
+        self.heave_scale = rospy.get_param('~heave_scale', 1.0) # scale /heave_control_input -> thrusters
         # Compensate DepthControlNode's "target_depth = msg - 60" behavior:
         self.depth_controller_bias = rospy.get_param('~depth_controller_bias', 0.0)
 

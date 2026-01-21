@@ -37,19 +37,16 @@ class DepthControlNode:
         self.pid_last_time = None
         self.error_integral = 0.0
         self.count_integrated_errors = 5
-        # self.target_depth = 1.4 # meters
+        # self.target_depth = 1.4 # meters, altitude from seabed
         self.target_depth = 58.5 # meters, depth from surface
         self.is_target_depth_changed = False
         self.kp_depth = 1.6
         self.ki_depth = 0.0
         self.kd_depth = 0.9
 
-        # self.depth_log_file = open("/home/alankrit/depth_data_log.txt", "a")
-        # self.start_time = time.time()
-        # rospy.on_shutdown(self.depth_log_file.close)
  
     def target_depth_callback(self, msg):
-        self.target_depth = msg.data #- 60
+        self.target_depth = msg.data #- 60 # if used in altitude mode, subtract the seabed depth (60m)
 
     def depth_callback(self, msg):
         ranges = np.asarray(msg.ranges, dtype=np.float32)

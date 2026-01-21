@@ -9,7 +9,7 @@ Email: adnanabdullah@ufl.edu
 
     <!-- Launch file arguments. -->
     <arg name="use_sim_time" default="true"/>
-    <arg name="world_name" default="spoke_pods.world"/>
+    <arg name="world_name" default="bus_pods.world"/>
     <arg name="enable_ros_network" default="true" />
 
     <env name="GAZEBO_PLUGIN_PATH"
@@ -110,8 +110,9 @@ Email: adnanabdullah@ufl.edu
 
 
     <!-- Run RViz with pre-saved config -->
-    <!-- <node pkg="rviz" type="rviz" name="rviz"
-        args="-d $(find nemesys_surveillance)/rviz/rviz_config2.rviz" output="screen" /> -->
+    <node pkg="rviz" type="rviz" name="rviz"
+        args="-d $(find nemesys_surveillance)/rviz/rviz_config2.rviz" output="screen" />
 
+    <node pkg="nemesys_surveillance" type="trajectory_visualizer.py" name="trajectory_visualizer" />
    
 </launch>
