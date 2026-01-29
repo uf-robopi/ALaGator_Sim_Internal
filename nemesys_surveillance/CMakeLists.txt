@@ -16,7 +16,6 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   sensor_msgs
   geometry_msgs
-  mavros_msgs
   gazebo_ros
   message_generation
   message_runtime
@@ -196,7 +195,7 @@ catkin_install_python(PROGRAMS
 )
 
 catkin_install_python(PROGRAMS
-  src/depth_control_node.py
+  src/nemesys_depth_control_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -217,11 +216,6 @@ catkin_install_python(PROGRAMS
 
 catkin_install_python(PROGRAMS
   src/wp_helix_executor.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-catkin_install_python(PROGRAMS
-  src/wp_array_executor.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -253,7 +247,7 @@ catkin_install_python(PROGRAMS
 
 
 catkin_install_python(PROGRAMS
-  src/imu_data_processor.py
+  src/nemesys_imu_data_processor.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

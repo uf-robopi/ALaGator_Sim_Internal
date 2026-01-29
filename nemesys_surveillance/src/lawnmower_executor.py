@@ -43,8 +43,8 @@ class LawnmowerExecutor:
         rospy.Subscriber('/nemesys/t2_duration', Float32, self.t2_callback)
         rospy.Subscriber('/nemesys/repetitions', Float32, self.reps_callback)
         rospy.Subscriber('/nemesys/target_depth', Float32, self.depth_callback)
-        rospy.Subscriber('/euler_angles', Vector3, self.euler_callback)
-        rospy.Subscriber('/heave_control_input', Float32, self.depth_control_callback)
+        rospy.Subscriber('/nemesys/euler_angles', Vector3, self.euler_callback)
+        rospy.Subscriber('/nemesys/heave_control_input', Float32, self.depth_control_callback)
 
         self.cmd_pub = rospy.Publisher('/nemesys/user_input', NemesysInput, queue_size=1)
         self.timer = rospy.Timer(rospy.Duration(0.1), self.update)

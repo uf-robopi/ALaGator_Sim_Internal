@@ -8,8 +8,6 @@
 #This file is based on teleop_twist_keyboard.py
 
 from __future__ import print_function
-
-import roslib; roslib.load_manifest('teleop_twist_keyboard')
 import rospy
 
 #from geometry_msgs.msg import Twist

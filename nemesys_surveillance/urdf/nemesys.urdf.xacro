@@ -17,7 +17,7 @@ Email: adnanabdullah@ufl.edu
 
 
     <material name="Custom_Color">
-        <color rgba="0.1 0.1 0.1 0.8" />
+        <color rgba="0.3 0.9 0.1 0.8" />
     </material>
 
     <material name="Orange">
@@ -452,7 +452,7 @@ Email: adnanabdullah@ufl.edu
     </gazebo>
 
     <gazebo reference="base_link">
-        <material>Gazebo/White</material>
+        <material>Gazebo/Green</material>
     </gazebo>
 
     <gazebo reference="front_right_thruster_link_nemesys">
@@ -528,35 +528,35 @@ Email: adnanabdullah@ufl.edu
     <gazebo>
         <plugin filename="libgazebo_ros_force.so" name="gazebo_ros_force">
             <bodyName>front_right_thruster_link_nemesys</bodyName>
-            <topicName>/front_right_thrust</topicName>
+            <topicName>/nemesys/front_right_thrust</topicName>
         </plugin>
     </gazebo>
 
     <gazebo>
         <plugin filename="libgazebo_ros_force.so" name="gazebo_ros_force">
             <bodyName>front_left_thruster_link_nemesys</bodyName>
-            <topicName>/front_left_thrust</topicName>
+            <topicName>/nemesys/front_left_thrust</topicName>
         </plugin>
     </gazebo>
 
     <gazebo>
         <plugin filename="libgazebo_ros_force.so" name="gazebo_ros_force">
             <bodyName>rear_right_thruster_link_nemesys</bodyName>
-            <topicName>/rear_right_thrust</topicName>
+            <topicName>/nemesys/rear_right_thrust</topicName>
         </plugin>
     </gazebo>
 
     <gazebo>
         <plugin filename="libgazebo_ros_force.so" name="gazebo_ros_force">
             <bodyName>rear_left_thruster_link_nemesys</bodyName>
-            <topicName>/rear_left_thrust</topicName>
+            <topicName>/nemesys/rear_left_thrust</topicName>
         </plugin>
     </gazebo>
 
     <gazebo>
         <plugin filename="libgazebo_ros_force.so" name="gazebo_ros_force">
             <bodyName>base_link</bodyName>
-            <topicName>/drag_force</topicName>
+            <topicName>/nemesys/drag_force</topicName>
         </plugin>
     </gazebo>
 
@@ -584,6 +584,7 @@ Email: adnanabdullah@ufl.edu
             </camera>
 
             <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+                <robotNamespace>/nemesys</robotNamespace>
                 <alwaysOn>true</alwaysOn>
                 <updateRate>0.0</updateRate>
                 <cameraName>downward_camera</cameraName>
@@ -625,6 +626,7 @@ Email: adnanabdullah@ufl.edu
             </camera>
 
             <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+                <robotNamespace>/nemesys</robotNamespace>
                 <alwaysOn>true</alwaysOn>
                 <updateRate>0.0</updateRate>
                 <cameraName>front_camera</cameraName>
@@ -678,7 +680,7 @@ Email: adnanabdullah@ufl.edu
             </ray>
 
             <plugin name="gazebo_ros_laser" filename="libgazebo_ros_laser.so">
-            <topicName>/raw_depth_data</topicName>
+            <topicName>/nemesys/raw_depth_data</topicName>
             <frameName>bar30_sensor_link</frameName>
             </plugin>
         </sensor>
@@ -694,7 +696,7 @@ Email: adnanabdullah@ufl.edu
             <visualize>true</visualize>
             <topic>__default_topic__</topic>
             <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
-                <topicName>raw_imu_data</topicName>
+                <topicName>/nemesys/raw_imu_data</topicName>
                 <bodyName>imu_link</bodyName>
                 <updateRateHZ>10.0</updateRateHZ>
                 <gaussianNoise>0.0</gaussianNoise>

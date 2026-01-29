@@ -75,10 +75,10 @@ Email: adnanabdullah@ufl.edu
     <node pkg="nemesys_surveillance" type="nemesys_control_node.py" name="nemesys_control_node" />
 
     <!-- Launching the depth controller node of the robot in Gazebo -->
-    <node pkg="nemesys_surveillance" type="depth_control_node.py" name="depth_control_node" />
+    <node pkg="nemesys_surveillance" type="nemesys_depth_control_node.py" name="nemesys_depth_control_node" />
 
     <!-- Launching the imu processor node of the robot in Gazebo -->
-    <node pkg="nemesys_surveillance" type="imu_data_processor.py" name="imu_data_processor" />
+    <node pkg="nemesys_surveillance" type="nemesys_imu_data_processor.py" name="nemesys_imu_data_processor" />
 
     <node pkg="nemesys_surveillance" type="nemesys_status_publisher.py" name="nemesys_status_publisher">
         <param name="use_sim_time" value="true"/>

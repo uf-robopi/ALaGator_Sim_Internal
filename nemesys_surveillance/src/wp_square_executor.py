@@ -41,8 +41,8 @@ class SquareExecutor:
 
         # === Subscribers ===
         rospy.Subscriber('/gazebo/link_states', LinkStates, self.link_callback)
-        rospy.Subscriber('/euler_angles', Vector3, self.euler_callback)
-        rospy.Subscriber('/heave_control_input', Float32, self.depth_control_callback)
+        rospy.Subscriber('/nemesys/euler_angles', Vector3, self.euler_callback)
+        rospy.Subscriber('/nemesys/heave_control_input', Float32, self.depth_control_callback)
 
         # === Publisher ===
         self.cmd_pub = rospy.Publisher('/nemesys/user_input', NemesysInput, queue_size=1)

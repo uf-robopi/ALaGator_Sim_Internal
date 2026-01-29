@@ -8,7 +8,7 @@
 # - For each pod:
 #     lane_anchor (x_pod, y_lane) -> approach (near pod, stop short) ->
 #     rectangle patrol around pod (respecting pod yaw) -> back to approach -> back to lane_anchor
-# - Publishes /target_depth for your DepthControlNode and passes through /heave_control_input
+# - Publishes /target_depth for your DepthControlNode and passes through /nemesys/heave_control_input
 # - Sends planar commands (surge/yaw) to /nemesys/user_input
 #
 # Works with your “Waypoint3DExecutor” structure and topics.
@@ -182,11 +182,11 @@ class Waypoint3DExecutorRoutineB:
         # ROS I/O
         # ==============================
         rospy.Subscriber('/gazebo/link_states', LinkStates, self.link_cb, queue_size=10)
-        rospy.Subscriber('/euler_angles', Vector3, self.euler_cb, queue_size=50)
-        rospy.Subscriber('/heave_control_input', Float32, self.heave_cb, queue_size=50)
+        rospy.Subscriber('/nemesys/euler_angles', Vector3, self.euler_cb, queue_size=50)
+        rospy.Subscriber('/nemesys/heave_control_input', Float32, self.heave_cb, queue_size=50)
 
         self.cmd_pub = rospy.Publisher('/nemesys/user_input', NemesysInput, queue_size=10)
-        self.target_depth_pub = rospy.Publisher('/target_depth', Float32, queue_size=10)
+        self.target_depth_pub = rospy.Publisher('/nemesys/target_depth', Float32, queue_size=10)
 
         self.cmd = NemesysInput()
         self.cmd.roll = 0.0

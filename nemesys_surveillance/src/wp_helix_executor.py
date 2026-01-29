@@ -39,7 +39,7 @@ class Helix3DExecutor:
         self.yaw_kp        = rospy.get_param('~yaw_kp',        0.02)
         self.surge_kp      = rospy.get_param('~surge_kp',      0.05)
         self.yaw_max       = rospy.get_param('~yaw_max',       0.5)   # +/- cmd limit
-        self.heave_scale   = rospy.get_param('~heave_scale',   0.05)  # scale /heave_control_input -> thrusters
+        self.heave_scale   = rospy.get_param('~heave_scale',   0.05)  # scale /nemesys/heave_control_input -> thrusters
         # Compensate DepthControlNode's "target_depth = msg - 60" behavior:
         self.depth_controller_bias = rospy.get_param('~depth_controller_bias', 0.0)
 
@@ -50,11 +50,11 @@ class Helix3DExecutor:
 
         # ===== I/O =====
         rospy.Subscriber('/gazebo/link_states', LinkStates, self.link_cb, queue_size=10)
-        rospy.Subscriber('/euler_angles', Vector3, self.euler_cb, queue_size=50)
-        rospy.Subscriber('/heave_control_input', Float32, self.heave_cb, queue_size=50)
+        rospy.Subscriber('/nemesys/euler_angles', Vector3, self.euler_cb, queue_size=50)
+        rospy.Subscriber('/nemesys/heave_control_input', Float32, self.heave_cb, queue_size=50)
 
         self.cmd_pub = rospy.Publisher('/nemesys/user_input', NemesysInput, queue_size=10)
-        self.target_depth_pub = rospy.Publisher('/target_depth', Float32, queue_size=10)
+        self.target_depth_pub = rospy.Publisher('/nemesys/target_depth', Float32, queue_size=10)
 
         # Command message scaffold
         self.cmd = NemesysInput()

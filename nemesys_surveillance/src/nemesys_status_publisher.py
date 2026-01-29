@@ -7,7 +7,7 @@
 """
 Keyboard tele-operation interface for nemesys.
  - Manual planar movement with WASD-like keys
- - Vertical motion (“heave”) is overridden by /heave_control_input unless
+ - Vertical motion (“heave”) is overridden by /nemesys/heave_control_input unless
    the operator presses i (up) or k (down)
  - Deadman: if no key press is seen for ~deadman_timeout_s, planar commands go to 0
 """
@@ -68,9 +68,9 @@ class NemesysTeleop:
         self._term_settings = termios.tcgetattr(sys.stdin)
 
         self.cmd_pub = rospy.Publisher("/nemesys/user_input", nemesysInput, queue_size=1)
-        self.ind_pub = rospy.Publisher("/depth_change_indicator", Bool, queue_size=1)
+        self.ind_pub = rospy.Publisher("/nemesys/depth_change_indicator", Bool, queue_size=1)
 
-        rospy.Subscriber("/heave_control_input", Float32, self._heave_control_cb, queue_size=1)
+        rospy.Subscriber("/nemesys/heave_control_input", Float32, self._heave_control_cb, queue_size=1)
 
         # Speed scaling (0..1)
         self.speed = rospy.get_param("~speed", 0.05)
@@ -129,7 +129,7 @@ class NemesysTeleop:
         cmd.yaw   = float(self.yaw   * self.speed)
 
         # NOTE: we do NOT multiply controller output by speed unless you really intend that.
-        # Usually /heave_control_input is already in [-1,1] command units.
+        # Usually /nemesys/heave_control_input is already in [-1,1] command units.
         # If you want scaling, keep "* self.speed" here; otherwise remove it.
         cmd.heave = float(heave_to_send * self.speed)
 

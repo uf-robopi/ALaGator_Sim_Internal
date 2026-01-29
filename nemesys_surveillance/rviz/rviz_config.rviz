@@ -193,7 +193,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /trajectory_marker
+      Marker Topic: /nemesys/trajectory_marker
       Name: Marker
       Namespaces:
         "": true

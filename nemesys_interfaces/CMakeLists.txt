@@ -14,7 +14,6 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   sensor_msgs
   geometry_msgs
-  mavros_msgs
   message_generation
   message_runtime
 )

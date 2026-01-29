@@ -31,7 +31,7 @@ class TrajectoryVisualizer:
         self.traj_marker.pose.orientation.z = 0.0
         self.traj_marker.pose.orientation.w = 1.0
 
-        self.pub = rospy.Publisher('/trajectory_marker', Marker, queue_size=10)
+        self.pub = rospy.Publisher('/nemesys/trajectory_marker', Marker, queue_size=10)
         rospy.Subscriber('/gazebo/link_states', LinkStates, self.link_callback)
 
     def link_callback(self, msg):

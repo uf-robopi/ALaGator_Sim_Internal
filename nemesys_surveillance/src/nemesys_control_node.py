@@ -90,13 +90,13 @@ class NemesysControlNode:
             "/gazebo/link_states", LinkStates, self.states_callback, queue_size=1
         )
 
-        self.front_right_thrust_pub = rospy.Publisher("/front_right_thrust", Wrench, queue_size=1)
-        self.front_left_thrust_pub = rospy.Publisher("/front_left_thrust", Wrench, queue_size=1)
-        self.rear_right_thrust_pub = rospy.Publisher("/rear_right_thrust", Wrench, queue_size=1)
-        self.rear_left_thrust_pub = rospy.Publisher("/rear_left_thrust", Wrench, queue_size=1)
+        self.front_right_thrust_pub = rospy.Publisher("/nemesys/front_right_thrust", Wrench, queue_size=1)
+        self.front_left_thrust_pub = rospy.Publisher("/nemesys/front_left_thrust", Wrench, queue_size=1)
+        self.rear_right_thrust_pub = rospy.Publisher("/nemesys/rear_right_thrust", Wrench, queue_size=1)
+        self.rear_left_thrust_pub = rospy.Publisher("/nemesys/rear_left_thrust", Wrench, queue_size=1)
 
-        self.drag_force_pub = rospy.Publisher("/drag_force", Wrench, queue_size=1)
-        self.deviation_error_pub = rospy.Publisher("/deviation_error", Float32, queue_size=1)
+        self.drag_force_pub = rospy.Publisher("/nemesys/drag_force", Wrench, queue_size=1)
+        self.deviation_error_pub = rospy.Publisher("/nemesys/deviation_error", Float32, queue_size=1)
 
         self.tf_broadcaster = tf.TransformBroadcaster()
 
