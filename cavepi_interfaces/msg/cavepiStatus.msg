@@ -1,0 +1,7 @@
+# Message definition for cavepiStatus
+std_msgs/Header header
+string state
+int32 detected_contours
+float32 angle
+std_msgs/Float32MultiArray control_cmd
+std_msgs/Float32MultiArray waypoint
