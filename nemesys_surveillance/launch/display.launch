@@ -9,7 +9,7 @@ Email: adnanabdullah@ufl.edu
 
     <!-- Launch file arguments. -->
     <arg name="use_sim_time" default="true"/>
-    <arg name="world_name" default="bus_pods.world"/>
+    <arg name="world_name" default="spoke_pods.world"/>
     <arg name="enable_ros_network" default="true" />
 
     <env name="GAZEBO_PLUGIN_PATH"
@@ -60,7 +60,7 @@ Email: adnanabdullah@ufl.edu
 
     <!-- Spawning the robot in Gazebo -->
     <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" output="screen"
-            args="-x 0.5 -y 0.0 -z -55.3 -urdf -model nemesys -param robot_description -R 0.0 -P 0.0 -Y 0.0" />
+            args="-x 0.5 -y 0.0 -z -58.3 -urdf -model nemesys -param robot_description -R 0.0 -P 0.0 -Y 0.0" />
     
     <!-- Static tf from world to odom/map frame -->
     <node pkg="tf" type="static_transform_publisher" name="world_to_map"
@@ -102,13 +102,19 @@ Email: adnanabdullah@ufl.edu
         </node>
 
         <node pkg="gazebo_ros" type="spawn_model" name="spawn"
-                args="-x 2.0 -y 0.0 -z -55.3 -urdf -model cavepi -param robot_description" />
+                args="-x -10.0 -y -2.0 -z -57.3 -urdf -model cavepi -param robot_description" />
 
         <node pkg="cavepi_adversary" type="cavepi_control_node.py" name="control_node" />
         <node pkg="cavepi_adversary" type="cavepi_depth_control_node.py" name="depth_control_node" />
         <node pkg="cavepi_adversary" type="cavepi_imu_data_processor.py" name="imu_processor" />
         <node pkg="cavepi_adversary" type="cavepi_status_publisher.py" name="status_pub" />
+        <node pkg="cavepi_adversary" type="cavepi_teleop_joy.py" name="teleop_joy" />
     </group>
+
+    <!-- Launching the joystick node for teleoperation -->
+    <node pkg="joy" type="joy_node" name="joy_node">
+            <param name="dev" value="/dev/input/js0" />
+        </node>
 
     <!-- To make the source mobile, run one of the following comamnds in a separate terminal -->
 

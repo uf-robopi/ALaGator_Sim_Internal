@@ -20,13 +20,13 @@ class cavepiJoyTeleop(object):
                                    queue_size=1)
 
         # Parameters
-        # Base speed scalar (like your ~speed param)
+        # Base speed scalar (like  speed param)
         self.speed = rospy.get_param("~speed", 0.3)    # 0..1
         self.speed_step = rospy.get_param("~speed_step", 0.1)
         self.speed_min = rospy.get_param("~speed_min", 0.0)
         self.speed_max = rospy.get_param("~speed_max", 1.0)
 
-        # Joystick mapping (adjust for your controller)
+        # Joystick mapping (adjust for controller)
         # Default Logitech/Xbox style:
         # axes[0] = left stick LR (-1 left, +1 right)
         # axes[1] = left stick UD (+1 up, -1 down)
@@ -40,11 +40,11 @@ class cavepiJoyTeleop(object):
         #   roll  -> right stick horizontal (axes[3])
         self.axis_surge = rospy.get_param("~axis_surge", 1)
         self.axis_yaw   = rospy.get_param("~axis_yaw",   0)
-        self.axis_heave = rospy.get_param("~axis_heave", 4)
-        self.axis_roll  = rospy.get_param("~axis_roll",  3)
+        self.axis_heave = rospy.get_param("~axis_heave", 3)
+        self.axis_roll  = rospy.get_param("~axis_roll",  4)
 
         # Buttons for speed up/down
-        # (Change these indices for your joystick)
+        # (Change these indices for joystick)
         # Example: button 4 (LB) decreases, button 5 (RB) increases
         self.btn_speed_down = rospy.get_param("~btn_speed_down", 4)
         self.btn_speed_up   = rospy.get_param("~btn_speed_up",   5)
@@ -55,7 +55,7 @@ class cavepiJoyTeleop(object):
         # Last Joy message (for continuous publish)
         self.last_joy = None
 
-        rospy.Subscriber("joy", Joy, self.joy_callback)
+        rospy.Subscriber("/joy", Joy, self.joy_callback)
 
         # Publish at fixed rate even if joystick unchanged
         self.rate = rospy.Rate(20)  # 20 Hz
@@ -102,11 +102,11 @@ class cavepiJoyTeleop(object):
                 heave_raw = self.apply_deadzone(get_axis(self.axis_heave))
                 roll_raw  = - self.apply_deadzone(get_axis(self.axis_roll))
 
-                # Same convention as your keyboard teleop:
+                # Same convention as keyboard teleop:
                 # scale by "speed"
                 cmd = cavepiInput()
                 cmd.surge = surge_raw * self.speed
-                cmd.heave = heave_raw * self.speed  # heave is vertical, so divide by 3 to reduce
+                cmd.heave = heave_raw * self.speed
                 cmd.roll  = roll_raw  * self.speed
                 cmd.yaw   = yaw_raw   * self.speed
 

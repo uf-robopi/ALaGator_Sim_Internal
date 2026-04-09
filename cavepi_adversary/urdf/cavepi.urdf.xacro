@@ -354,79 +354,42 @@ Email: adnanabdullah@ufl.edu
         <origin xyz="0 0 0" rpy="0 0 0"/>
     </joint>
 
-
-    <!-- hydrophone_link DEFINITION -->
-    <link name="hydrophone_link">
-        <visual>
-            <origin xyz="0 0 0" rpy="0 0 0"/>
-            <geometry>
-            <cylinder radius="0.01" length="0.03"/>
-            </geometry>
-            <material name="Green" />
-        </visual>
-
-        <collision>
-            <origin xyz="0 0 0" rpy="0 0 0"/>
-            <geometry>
-            <cylinder radius="0.01" length="0.03"/>
-            </geometry>
-        </collision>
-
+    <!-- acoustic_source_link DEFINITION -->
+    <link name="acoustic_source_link">
         <inertial>
+            <mass value="${negligible_mass}"/>
             <origin xyz="0 0 0" rpy="0 0 0"/>
-            <mass value="1e-4"/>
-            <!-- For r=0.02 m, h=0.05 m, m=1e-4 kg (solid cylinder, axis = z): -->
-            <inertia
-            ixx="3.083333333e-08" ixy="0" ixz="0"
-            iyy="3.083333333e-08" iyz="0"
-            izz="2.0e-08"/>
+            <inertia ixx="${negligible_inertia}" ixy="0" ixz="0"
+                    iyy="${negligible_inertia}" iyz="0"
+                    izz="${negligible_inertia}"/>
         </inertial>
+
+        <!-- optional: show a tiny marker -->
+        <visual>
+            <geometry><sphere radius="0.01"/></geometry>
+        </visual>
     </link>
 
-        <joint name="body_to_hydrophone_joint" type="fixed">
+    <joint name="base_to_acoustic_source" type="fixed">
         <parent link="base_link"/>
-        <child link="hydrophone_link"/>
-        <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
-        </joint>
+        <child link="acoustic_source_link"/>
+        <!-- same pose as AUV: set to 0 0 0 -->
+        <origin xyz="0 0 ${scale_size*-0.1}" rpy="0 0 0"/>
+    </joint>
 
 
 
     <!-- GAZEBO PLUGINS -->
 
-    <!-- Model-level Gazebo plugin: Hydrophone on the ROV -->
     <gazebo>
-    <plugin name="hydrophone_on_rov" filename="libgazebo_hydrophone_sub.so">
-        <source_audio_topic>/acoustics/source_audio</source_audio_topic>
-        <!-- Required/recognized params by HydrophonePlugin -->
-        <out_topic>/hydrophones/rov</out_topic>
-
-        <!-- This must match the spawned acoustic source’s model name -->
-        <source_model>mobile_acoustic_source</source_model>
-        <!-- And the link on that model -->
-        <source_link>source_link</source_link>
-
-        <!-- The link on THIS robot to sample pose from -->
-        <hydro_link>hydrophone_link</hydro_link>
-
-        <!-- Signal and sim params -->
-        <signal_type>tone</signal_type>         <!-- tone | noise -->
-        <fs>48000</fs>
-        <amplitude>1.0</amplitude>
-        <start_time>0.0</start_time>
-        <speed_of_sound>1482.0</speed_of_sound>
-        <block_size>1024</block_size>
-        <loss_model>none</loss_model>         <!-- none | inverse | inverse_square -->
-        <noise_std>0.0</noise_std>
-        <buffer_seconds>5.0</buffer_seconds>
-        <output_latency_blocks>0</output_latency_blocks>
-        
-        <directionality>cosine</directionality>          <!-- none|cosine|cosine_power -->
-        <dir_axis>1 0 0</dir_axis>                       <!-- source-local axis (default +X) -->
-        <dir_rate>1.0</dir_rate>                         <!-- multiplier inside cos(rate*alpha) -->
-        <dir_power>1.0</dir_power>                       <!-- for cosine_power -->
-        <dir_min>0.0</dir_min>                           <!-- clamp -->
-        <dir_max>1.0</dir_max>
-    </plugin>
+        <plugin name="ac_source" filename="libgazebo_acoustic_source_pub.so">
+            <out_topic>/acoustics/source_audio</out_topic>
+            <audio_path>$(find uw_acoustics)/assets/triangle_1kHz.wav</audio_path>
+            <loop>true</loop>
+            <fs>48000</fs>
+            <block_size>1024</block_size>
+            <start_time>0.0</start_time>
+        </plugin>
     </gazebo>
 
     <gazebo>
